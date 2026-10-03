@@ -323,6 +323,26 @@ export const calcDefs: Record<string, CalcDef> = {
     },
   },
 
+  "domain-cost-calculator": {
+    note: "Registration is often discounted for the first year; the renewal price is what you pay every year after.",
+    fields: [
+      f("reg", "First-year registration price", 10, "USD", 0.01),
+      f("renew", "Renewal price per year", 15, "USD", 0.01),
+      f("years", "Years you will hold the domain", 5, "years"),
+      f("privacy", "WHOIS privacy per year", 0, "USD", 0.01),
+      f("domains", "Number of domains", 1, "domains"),
+    ],
+    compute: (v) => {
+      if (v.years < 1) return "Hold the domain for at least 1 year."
+      const one = v.reg + v.renew * (v.years - 1) + v.privacy * v.years
+      return [
+        money("Total cost per domain", one, true),
+        money("Total for all domains", one * v.domains, true),
+        money("Average per year (per domain)", one / v.years),
+        money("Renewal-year cost (per domain)", v.renew + v.privacy),
+      ]
+    },
+  },
   "cpanel-license-calculator": licenseDef("cPanel", "server"),
   "cloudlinux-license-calculator": licenseDef("CloudLinux", "server"),
   "litespeed-license-calculator": licenseDef("LiteSpeed", "server"),

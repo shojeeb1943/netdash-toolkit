@@ -124,7 +124,9 @@
     "react-dom": "^19.2.8",
     "serve-handler": "^6.1.7",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.6.0"
+    "sql-formatter": "^15.9.0",
+    "tailwind-merge": "^3.6.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

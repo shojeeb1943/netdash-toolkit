@@ -186,6 +186,94 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/server-license-stack-calculator").then((m) => ({
       default: m.ServerLicenseStackCalculator,
     })),
+  "domain-availability-checker": () =>
+    import("@/components/tools/domain-availability-checker").then((m) => ({
+      default: m.DomainAvailabilityChecker,
+    })),
+  "domain-age-calculator": () =>
+    import("@/components/tools/domain-age-calculator").then((m) => ({
+      default: m.DomainAgeCalculator,
+    })),
+  "domain-expiry-calculator": () =>
+    import("@/components/tools/domain-expiry-calculator").then((m) => ({
+      default: m.DomainExpiryCalculator,
+    })),
+  "domain-name-generator": () =>
+    import("@/components/tools/domain-name-generator").then((m) => ({
+      default: m.DomainNameGenerator,
+    })),
+  "domain-cost-calculator": () =>
+    import("@/components/tools/domain-cost-calculator").then((m) => ({
+      default: m.DomainCostCalculator,
+    })),
+  "domain-transfer-checklist": () =>
+    import("@/components/tools/domain-transfer-checklist").then((m) => ({
+      default: m.DomainTransferChecklist,
+    })),
+  "chmod-calculator": () =>
+    import("@/components/tools/chmod-calculator").then((m) => ({ default: m.ChmodCalculator })),
+  "chown-generator": () =>
+    import("@/components/tools/chown-generator").then((m) => ({ default: m.ChownGenerator })),
+  "umask-calculator": () =>
+    import("@/components/tools/umask-calculator").then((m) => ({ default: m.UmaskCalculator })),
+  "scp-generator": () =>
+    import("@/components/tools/scp-generator").then((m) => ({ default: m.ScpGenerator })),
+  "rsync-generator": () =>
+    import("@/components/tools/rsync-generator").then((m) => ({ default: m.RsyncGenerator })),
+  "nginx-config-generator": () =>
+    import("@/components/tools/nginx-config-generator").then((m) => ({
+      default: m.NginxConfigGenerator,
+    })),
+  "apache-virtualhost-generator": () =>
+    import("@/components/tools/apache-virtualhost-generator").then((m) => ({
+      default: m.ApacheVirtualhostGenerator,
+    })),
+  "htaccess-generator": () =>
+    import("@/components/tools/htaccess-generator").then((m) => ({ default: m.HtaccessGenerator })),
+  "utm-builder": () =>
+    import("@/components/tools/utm-builder").then((m) => ({ default: m.UtmBuilder })),
+  "meta-title-checker": () =>
+    import("@/components/tools/meta-title-checker").then((m) => ({ default: m.MetaTitleChecker })),
+  "meta-description-checker": () =>
+    import("@/components/tools/meta-description-checker").then((m) => ({
+      default: m.MetaDescriptionChecker,
+    })),
+  "serp-preview": () =>
+    import("@/components/tools/serp-preview").then((m) => ({ default: m.SerpPreview })),
+  "robots-txt-generator": () =>
+    import("@/components/tools/robots-txt-generator").then((m) => ({
+      default: m.RobotsTxtGenerator,
+    })),
+  "sitemap-generator": () =>
+    import("@/components/tools/sitemap-generator").then((m) => ({ default: m.SitemapGenerator })),
+  "schema-generator": () =>
+    import("@/components/tools/schema-generator").then((m) => ({ default: m.SchemaGenerator })),
+  "open-graph-generator": () =>
+    import("@/components/tools/open-graph-generator").then((m) => ({
+      default: m.OpenGraphGenerator,
+    })),
+  "yaml-formatter": () =>
+    import("@/components/tools/yaml-formatter").then((m) => ({ default: m.YamlFormatter })),
+  "xml-formatter": () =>
+    import("@/components/tools/xml-formatter").then((m) => ({ default: m.XmlFormatter })),
+  "sql-formatter": () =>
+    import("@/components/tools/sql-formatter").then((m) => ({ default: m.SqlFormatter })),
+  "json-to-yaml": () =>
+    import("@/components/tools/json-to-yaml").then((m) => ({ default: m.JsonToYaml })),
+  "yaml-to-json": () =>
+    import("@/components/tools/yaml-to-json").then((m) => ({ default: m.YamlToJson })),
+  "json-to-typescript": () =>
+    import("@/components/tools/json-to-typescript").then((m) => ({ default: m.JsonToTypescript })),
+  "csv-to-json": () =>
+    import("@/components/tools/csv-to-json").then((m) => ({ default: m.CsvToJson })),
+  "json-to-csv": () =>
+    import("@/components/tools/json-to-csv").then((m) => ({ default: m.JsonToCsv })),
+  "password-entropy-calculator": () =>
+    import("@/components/tools/password-entropy-calculator").then((m) => ({
+      default: m.PasswordEntropyCalculator,
+    })),
+  "sri-hash-generator": () =>
+    import("@/components/tools/sri-hash-generator").then((m) => ({ default: m.SriHashGenerator })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {
