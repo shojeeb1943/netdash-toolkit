@@ -114,6 +114,78 @@ export const toolLoaders: Record<string, ToolLoader> = {
     })),
   "ipv6-reference": () =>
     import("@/components/tools/ipv6-reference").then((m) => ({ default: m.IPv6Reference })),
+  "hosting-cost-calculator": () =>
+    import("@/components/tools/hosting-cost-calculator").then((m) => ({
+      default: m.HostingCostCalculator,
+    })),
+  "vps-cost-calculator": () =>
+    import("@/components/tools/vps-cost-calculator").then((m) => ({
+      default: m.VpsCostCalculator,
+    })),
+  "hosting-profit-calculator": () =>
+    import("@/components/tools/hosting-profit-calculator").then((m) => ({
+      default: m.HostingProfitCalculator,
+    })),
+  "hosting-break-even-calculator": () =>
+    import("@/components/tools/hosting-break-even-calculator").then((m) => ({
+      default: m.HostingBreakEvenCalculator,
+    })),
+  "server-capacity-calculator": () =>
+    import("@/components/tools/server-capacity-calculator").then((m) => ({
+      default: m.ServerCapacityCalculator,
+    })),
+  "backup-storage-calculator": () =>
+    import("@/components/tools/backup-storage-calculator").then((m) => ({
+      default: m.BackupStorageCalculator,
+    })),
+  "backup-retention-calculator": () =>
+    import("@/components/tools/backup-retention-calculator").then((m) => ({
+      default: m.BackupRetentionCalculator,
+    })),
+  "migration-time-calculator": () =>
+    import("@/components/tools/migration-time-calculator").then((m) => ({
+      default: m.MigrationTimeCalculator,
+    })),
+  "bandwidth-cost-calculator": () =>
+    import("@/components/tools/bandwidth-cost-calculator").then((m) => ({
+      default: m.BandwidthCostCalculator,
+    })),
+  "hosting-package-pricing-calculator": () =>
+    import("@/components/tools/hosting-package-pricing-calculator").then((m) => ({
+      default: m.HostingPackagePricingCalculator,
+    })),
+  "cpanel-license-calculator": () =>
+    import("@/components/tools/cpanel-license-calculator").then((m) => ({
+      default: m.CpanelLicenseCalculator,
+    })),
+  "cloudlinux-license-calculator": () =>
+    import("@/components/tools/cloudlinux-license-calculator").then((m) => ({
+      default: m.CloudlinuxLicenseCalculator,
+    })),
+  "litespeed-license-calculator": () =>
+    import("@/components/tools/litespeed-license-calculator").then((m) => ({
+      default: m.LitespeedLicenseCalculator,
+    })),
+  "whmcs-license-calculator": () =>
+    import("@/components/tools/whmcs-license-calculator").then((m) => ({
+      default: m.WhmcsLicenseCalculator,
+    })),
+  "jetbackup-license-calculator": () =>
+    import("@/components/tools/jetbackup-license-calculator").then((m) => ({
+      default: m.JetbackupLicenseCalculator,
+    })),
+  "softaculous-license-calculator": () =>
+    import("@/components/tools/softaculous-license-calculator").then((m) => ({
+      default: m.SoftaculousLicenseCalculator,
+    })),
+  "virtualizor-license-calculator": () =>
+    import("@/components/tools/virtualizor-license-calculator").then((m) => ({
+      default: m.VirtualizorLicenseCalculator,
+    })),
+  "server-license-stack-calculator": () =>
+    import("@/components/tools/server-license-stack-calculator").then((m) => ({
+      default: m.ServerLicenseStackCalculator,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {
