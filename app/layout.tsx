@@ -9,7 +9,7 @@ import { Toaster } from "sonner"
 import { Suspense } from "react"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { offlineToolCount, tools } from "@/lib/tool-registry"
-import { REPO_URL, SITE_NAME, SITE_TAGLINE, SITE_URL, canonical } from "@/lib/site"
+import { BRAND, SITE_NAME, SITE_ORIGIN, canonical } from "@/lib/site"
 import "./globals.css"
 
 const inter = Inter({
@@ -24,16 +24,16 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   // without metadataBase every og:image and canonical resolves relative and breaks once a card renders off-site
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
-    default: `${SITE_NAME}: ${SITE_TAGLINE}`,
-    // per-tool pages supply their own title and inherit the suffix
+    default: `Free Network & Sysadmin Tools \u2013 DNS, Subnet & IP | ${BRAND}`,
+    // per-tool pages supply an absolute title; anything else inherits this suffix
     template: `%s | ${SITE_NAME}`,
   },
   description: `${tools.length} network engineering tools: subnetting, DNS, TLS, packet maths and reference tables. Free, no account required, and ${offlineToolCount()} of them never send your input anywhere.`,
   applicationName: SITE_NAME,
-  authors: [{ name: "Sunny Patel", url: "https://sunnypatel.net" }],
-  creator: "Sunny Patel",
+  authors: [{ name: BRAND, url: SITE_ORIGIN }],
+  creator: BRAND,
   keywords: [
     "network engineering",
     "subnet calculator",
@@ -46,23 +46,18 @@ export const metadata: Metadata = {
   alternates: { canonical: canonical("/") },
   openGraph: {
     type: "website",
-    siteName: SITE_NAME,
-    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
+    siteName: BRAND,
+    title: `Free Network & Sysadmin Tools \u2013 DNS, Subnet & IP | ${BRAND}`,
     description: `${tools.length} network engineering tools. Free, no account required.`,
     url: canonical("/"),
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
+    title: `Free Network & Sysadmin Tools \u2013 DNS, Subnet & IP | ${BRAND}`,
     description: `${tools.length} network engineering tools. Free, no account required.`,
   },
   robots: { index: true, follow: true },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/icon.svg",
-  },
 }
 
 export const viewport: Viewport = {
@@ -89,16 +84,15 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               name: SITE_NAME,
-              description: SITE_TAGLINE,
+              description:
+                "Free online sysadmin and network engineering tools: subnet calculators, DNS lookup, IP converters, TLS checks, and packet diagnostics.",
               url: canonical("/"),
               applicationCategory: "DeveloperApplication",
               operatingSystem: "Any",
               browserRequirements: "Requires JavaScript",
               isAccessibleForFree: true,
               offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-              author: { "@type": "Person", name: "Sunny Patel", url: "https://sunnypatel.net" },
-              codeRepository: REPO_URL,
-              license: "https://opensource.org/licenses/MIT",
+              author: { "@type": "Organization", name: BRAND, url: SITE_ORIGIN },
             }),
           }}
         />

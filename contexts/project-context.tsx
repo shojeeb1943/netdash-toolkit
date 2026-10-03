@@ -85,9 +85,9 @@ interface ProjectContextType {
   removeItemFromSharedProject: (projectPath: string, itemId: string) => Promise<void>
 }
 
-const STORAGE_KEY = "netdash-projects"
+const STORAGE_KEY = "licenbase-projects"
 // deleted ids, persisted: an in-memory guard died on refresh and the next snapshot re-uploaded them
-const TOMBSTONE_KEY = "netdash-deleted-projects"
+const TOMBSTONE_KEY = "licenbase-deleted-projects"
 // a browser that deletes but never signs in gets no snapshot to retire these
 const TOMBSTONE_LIMIT = 200
 
@@ -760,7 +760,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.download = `netdash-all-projects-${new Date().toISOString().split("T")[0]}.json`
+    link.download = `licenbase-all-projects-${new Date().toISOString().split("T")[0]}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

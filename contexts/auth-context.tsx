@@ -332,7 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         url:
           typeof window !== "undefined"
             ? `${window.location.origin}/auth/action`
-            : "https://netdash-toolkit.vercel.app/auth/action",
+            : "https://licenbase.com/tools/auth/action/",
         handleCodeInApp: false,
       }
       await sendPasswordResetEmail(services.auth, email, actionCodeSettings)

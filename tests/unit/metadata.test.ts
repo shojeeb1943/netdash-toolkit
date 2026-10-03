@@ -10,9 +10,9 @@ import manifest from "@/app/manifest"
 describe("canonical urls", () => {
   it("always ends in a slash, because next.config sets trailingSlash", () => {
     // without the slash every canonical points at a redirect rather than a page
-    expect(canonical("/")).toBe(`${SITE_URL}/`)
-    expect(canonical("/about")).toBe(`${SITE_URL}/about/`)
-    expect(canonical("/tools/subnet-calculator")).toBe(`${SITE_URL}/tools/subnet-calculator/`)
+    expect(canonical("/")).toBe(`${SITE_URL}/tools/`)
+    expect(canonical("/about")).toBe(`${SITE_URL}/tools/about/`)
+    expect(canonical("/subnet-calculator")).toBe(`${SITE_URL}/tools/subnet-calculator/`)
   })
 
   it("is idempotent for a path that already has one", () => {
@@ -26,7 +26,7 @@ describe("sitemap", () => {
   it("covers every tool in the registry", () => {
     const urls = new Set(entries.map((e) => e.url))
     for (const tool of tools) {
-      expect(urls.has(canonical(`/tools/${tool.slug}`)), `missing ${tool.slug}`).toBe(true)
+      expect(urls.has(canonical(`/${tool.slug}`)), `missing ${tool.slug}`).toBe(true)
     }
   })
 
@@ -36,7 +36,7 @@ describe("sitemap", () => {
   })
 
   it("uses absolute urls with the canonical origin", () => {
-    for (const entry of entries) expect(entry.url.startsWith(`${SITE_URL}/`)).toBe(true)
+    for (const entry of entries) expect(entry.url.startsWith(`${SITE_URL}/tools/`)).toBe(true)
   })
 
   it("does not list the signed-in only or auth routes", () => {
@@ -54,10 +54,8 @@ describe("sitemap", () => {
 describe("robots", () => {
   const result = robots()
 
-  it("points at both sitemaps and disallows the non-public routes", () => {
-    // the docs are a separate astro build with their own sitemap
-    expect(result.sitemap).toContain(`${SITE_URL}/sitemap.xml`)
-    expect(result.sitemap).toContain(`${SITE_URL}/docs/sitemap-index.xml`)
+  it("points at the sitemap and disallows the non-public routes", () => {
+    expect(result.sitemap).toContain(`${SITE_URL}/tools/sitemap.xml`)
     const rules = Array.isArray(result.rules) ? result.rules[0] : result.rules
     expect(rules.disallow).toContain("/projects/")
     expect(rules.disallow).toContain("/auth/")
@@ -67,8 +65,8 @@ describe("robots", () => {
 describe("manifest", () => {
   const result = manifest()
 
-  it("states the real tool count rather than a stale number", () => {
-    expect(result.description).toContain(String(tools.length))
+  it("does not hard-code a tool count that goes stale", () => {
+    expect(result.description).not.toMatch(/\d+ network engineering tools/)
   })
 
   it("only offers shortcuts to tools that exist", () => {

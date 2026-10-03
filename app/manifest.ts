@@ -19,8 +19,9 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${SITE_NAME}: ${SITE_TAGLINE}`,
     short_name: SITE_NAME,
-    description: `${tools.length} network engineering tools. Free, no account required, and most of them never send your input anywhere.`,
-    start_url: "/",
+    description:
+      "Free online sysadmin and network tools: subnet calculators, DNS lookup, IP converters, TLS checks, and packet diagnostics.",
+    start_url: "/tools/",
     display: "standalone",
     // matches --background in app/globals.css for both themes
     background_color: "#0f172a",

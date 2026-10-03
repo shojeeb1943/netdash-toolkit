@@ -58,9 +58,10 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
           {/* not an h1: every page already owns one. a link because the wordmark was the only dead element on a deep tool route. */}
           <Link
             href="/"
-            className="text-foreground focus-visible:ring-ring focus-visible:ring-offset-card truncate rounded text-base font-semibold hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:text-lg"
+            className="text-foreground focus-visible:ring-ring focus-visible:ring-offset-card inline-flex items-center gap-2 truncate rounded text-base font-semibold hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:text-lg"
           >
-            {SITE_NAME}
+            <span className="font-bold text-gray-900 dark:text-white">{SITE_NAME}</span>
+            <span className="lb-tools-brand-badge hidden sm:inline-flex">Free Suite</span>
           </Link>
 
           {/* a shortcut nobody can see is a shortcut nobody uses */}

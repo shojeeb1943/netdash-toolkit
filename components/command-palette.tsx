@@ -3,16 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Command } from "cmdk"
-import {
-  BookOpen,
-  Clock,
-  Cloud,
-  CornerDownLeft,
-  FolderOpen,
-  Home,
-  Info,
-  Search,
-} from "lucide-react"
+import { Clock, Cloud, CornerDownLeft, FolderOpen, Home, Info, Search } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import {
   categories,
@@ -24,7 +15,7 @@ import {
   type ToolDefinition,
 } from "@/lib/tool-registry"
 
-const OPEN_EVENT = "netdash:open-command-palette"
+const OPEN_EVENT = "licenbase:open-command-palette"
 
 // lets the header button open the palette without threading state through the shell
 export function openCommandPalette() {
@@ -58,15 +49,13 @@ export function ShortcutHint({ className }: { className?: string }) {
   )
 }
 
-const RECENTS_KEY = "netdash-recent-tools"
+const RECENTS_KEY = "licenbase-recent-tools"
 const RECENTS_MAX = 6
 
-// external: the docs are static astro output under public/, so the router has never heard of them
 const pages: Array<{ href: string; label: string; icon: LucideIcon; external?: boolean }> = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/about", label: "About", icon: Info },
-  { href: "/docs/", label: "Docs", icon: BookOpen, external: true },
 ]
 
 // exported so the dashboard can show the same list; one store, one reader

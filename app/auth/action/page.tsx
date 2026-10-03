@@ -132,7 +132,7 @@ function AuthActionContent() {
           <CardContent>
             <Button onClick={goToApp} className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Return to NetDash Toolkit
+              Return to LicenBase Tools
             </Button>
           </CardContent>
         </Card>
@@ -156,7 +156,7 @@ function AuthActionContent() {
           <CardContent>
             <Button onClick={goToApp} className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Go to NetDash Toolkit
+              Go to LicenBase Tools
             </Button>
           </CardContent>
         </Card>
@@ -180,7 +180,7 @@ function AuthActionContent() {
           <CardContent>
             <Button onClick={goToApp} className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Sign In to NetDash Toolkit
+              Sign In to LicenBase Tools
             </Button>
           </CardContent>
         </Card>
@@ -202,7 +202,7 @@ function AuthActionContent() {
           <CardContent>
             <Button onClick={goToApp} className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Return to NetDash Toolkit
+              Return to LicenBase Tools
             </Button>
           </CardContent>
         </Card>
@@ -322,7 +322,7 @@ function AuthActionContent() {
         <CardContent>
           <Button onClick={goToApp} className="w-full">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to NetDash Toolkit
+            Return to LicenBase Tools
           </Button>
         </CardContent>
       </Card>

@@ -1,33 +1,13 @@
+/* eslint-disable @next/next/no-html-link-for-pages -- these links go to the main LicenBase site, outside the /tools basePath */
 "use client"
 
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Github, Linkedin } from "@/components/icons/brand-icons"
-import {
-  BookOpen,
-  ExternalLink,
-  Globe,
-  GitCommit,
-  Plus,
-  Bug,
-  Wrench,
-  Star,
-  Heart,
-  Coffee,
-  Cloud,
-  Monitor,
-  WifiOff,
-} from "lucide-react"
+import { GitCommit, Plus, Bug, Wrench, Star, Cloud, Monitor, WifiOff } from "lucide-react"
 import changelogData from "@/data/changelog.json"
 import { categories, isOffline, offlineToolCount, tools } from "@/lib/tool-registry"
-import { REPO_URL } from "@/lib/site"
-
-// docs are static astro output copied into public/, not a next route
-const DOCS_URL = "/docs/"
-const RELEASES_URL = `${REPO_URL}/releases/latest`
 
 const changelog = changelogData.releases
 const offlineCount = offlineToolCount()
@@ -88,7 +68,7 @@ export function About() {
     <div className="space-y-8">
       <header className="space-y-3">
         <p className="eyebrow">About</p>
-        <h1 className="text-3xl font-semibold text-balance sm:text-4xl">NetDash Toolkit</h1>
+        <h1 className="text-3xl font-semibold text-balance sm:text-4xl">LicenBase Tools</h1>
         <p className="text-muted-foreground max-w-3xl leading-relaxed text-pretty">
           {tools.length} network engineering utilities in one static site: subnetting, addressing,
           config generation, diagnostics, reference tables and a handful of everyday developer
@@ -160,14 +140,7 @@ export function About() {
             </table>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            <a
-              href={`${DOCS_URL}privacy/what-leaves-your-device/`}
-              className="text-foreground focus-visible:ring-ring focus-visible:ring-offset-background rounded underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              What leaves your device
-            </a>{" "}
-            in the docs breaks the same list down by capability, names who operates each host, and
-            says what it receives.
+            Every tool above that contacts a host names it on the tool page before anything is sent.
           </p>
         </CardContent>
       </Card>
@@ -218,21 +191,6 @@ export function About() {
             <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
               In the browser, the ping tool measures an HTTPS round trip. That is a useful
               reachability signal, but it is not ICMP and the tool says so.
-            </p>
-            {/* the app names the desktop build in ten places and linked it in none */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
-                  <Monitor className="size-4" aria-hidden="true" />
-                  Download for macOS, Windows or Linux
-                  <ExternalLink className="size-3" aria-hidden="true" />
-                </a>
-              </Button>
-            </div>
-            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-              Builds are ad-hoc signed rather than notarized, so macOS asks before opening one. The
-              release notes carry SHA-256 checksums and build provenance if you want to check what
-              you downloaded.
             </p>
           </CardContent>
         </Card>
@@ -357,72 +315,31 @@ export function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Who built it</CardTitle>
+          <CardTitle className="text-lg">Provided by LicenBase</CardTitle>
+          <CardDescription>
+            Empowering sysadmins, DevOps teams, and web hosting providers
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Sunny Patel, a software engineer. The toolkit started as a subnet calculator that kept
-            growing, and it stays free with no account and no ads. The source is on GitHub if you
-            want to check any of the claims above.
+            LicenBase is the leading software licensing platform for hosting providers, agencies,
+            and cloud engineers. We build and maintain these {tools.length} high-performance tools
+            to give the sysadmin and developer community completely free, privacy-first, and
+            browser-local utilities.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <a href={DOCS_URL}>
-                <BookOpen className="size-4" aria-hidden="true" />
-                Docs
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a href="https://www.sunnypatel.net/" target="_blank" rel="noopener noreferrer">
-                <Globe className="size-4" aria-hidden="true" />
-                Portfolio
-                <ExternalLink className="size-3" aria-hidden="true" />
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href="https://github.com/sunnypatell/netdash-toolkit"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Github className="size-4" aria-hidden="true" />
-                Source
-                <ExternalLink className="size-3" aria-hidden="true" />
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href="https://www.linkedin.com/in/sunny-patel-30b460204/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Linkedin className="size-4" aria-hidden="true" />
-                LinkedIn
-                <ExternalLink className="size-3" aria-hidden="true" />
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href="https://github.com/sponsors/sunnypatell"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Heart className="size-4" aria-hidden="true" />
-                Sponsor
-                <ExternalLink className="size-3" aria-hidden="true" />
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href="https://buymeacoffee.com/sunnypatell"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Coffee className="size-4" aria-hidden="true" />
-                Buy me a coffee
-                <ExternalLink className="size-3" aria-hidden="true" />
-              </a>
-            </Button>
+            <a href="/products" className="lb-tools-btn-primary">
+              <span>Explore Licenses</span>
+            </a>
+            <a href="/deals" className="lb-tools-btn-secondary">
+              Hosting Deals
+            </a>
+            <a href="/contact" className="lb-tools-btn-secondary">
+              Contact Support
+            </a>
+            <a href="/" className="lb-tools-btn-secondary">
+              LicenBase Home
+            </a>
           </div>
         </CardContent>
       </Card>

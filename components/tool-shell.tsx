@@ -19,6 +19,7 @@ import {
 } from "@/lib/tool-registry"
 import { rememberToolVisit } from "@/components/command-palette"
 import { loadTool } from "@/lib/tool-loaders"
+import { LbCta } from "@/components/lb-chrome"
 
 const RELATED_MAX = 6
 
@@ -146,6 +147,8 @@ export function ToolShell({ slug }: { slug: string }) {
         {/* eslint-disable-next-line react-hooks/static-components */}
         <Tool />
       </Suspense>
+
+      <LbCta />
 
       <div className="pt-2">
         <RelatedTools tool={tool} />

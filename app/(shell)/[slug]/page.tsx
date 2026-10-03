@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { ToolShell } from "@/components/tool-shell"
 import { getToolBySlug, isOffline, tools } from "@/lib/tool-registry"
-import { SITE_NAME, canonical } from "@/lib/site"
+import { BRAND, canonical, pageTitle } from "@/lib/site"
 
 // static export: every tool page is enumerated at build time, so unknown slugs fail the build
 export const dynamicParams = false
@@ -19,27 +19,27 @@ export async function generateMetadata({
   const tool = getToolBySlug(slug)
   if (!tool) return {}
 
-  const url = canonical(`/tools/${tool.slug}`)
+  const url = canonical(`/${tool.slug}`)
   // stated per tool: roughly a quarter of them do leave the device, so the card must not imply otherwise
   const privacy = isOffline(tool)
     ? "Runs offline; nothing you type leaves your browser."
     : "Sends data to a third-party host, and only when you ask it to."
 
   return {
-    title: tool.title,
+    title: { absolute: pageTitle(tool.title) },
     description: tool.description,
     keywords: tool.keywords,
     alternates: { canonical: url },
     openGraph: {
       type: "website",
-      siteName: SITE_NAME,
-      title: tool.title,
+      siteName: BRAND,
+      title: pageTitle(tool.title),
       description: `${tool.description} ${privacy}`,
       url,
     },
     twitter: {
       card: "summary_large_image",
-      title: tool.title,
+      title: pageTitle(tool.title),
       description: `${tool.description} ${privacy}`,
     },
   }

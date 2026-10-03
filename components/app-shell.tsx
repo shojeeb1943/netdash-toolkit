@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
+import { LbFooter } from "@/components/lb-chrome"
 
 // a mount decision, not a css one: a css-hidden radix dialog still traps focus and locks body scroll
 function useIsDesktop() {
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {children}
           </main>
-          <Footer />
+          <LbFooter />
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
 
   const toolPages: MetadataRoute.Sitemap = tools.map((tool) => ({
-    url: canonical(`/tools/${tool.slug}`),
+    url: canonical(`/${tool.slug}`),
     changeFrequency: "monthly",
     // popular tools are the entry points people actually search for
     priority: tool.popular ? 0.9 : 0.7,

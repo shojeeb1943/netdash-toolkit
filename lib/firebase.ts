@@ -88,7 +88,7 @@ async function loadFirestore(): Promise<Firestore> {
   return db
 }
 
-const SESSION_HINT_KEY = "netdash-auth-session"
+const SESSION_HINT_KEY = "licenbase-auth-session"
 // firebase auth's own persistence, probed by name only when our hint is missing
 const FIREBASE_AUTH_DB = "firebaseLocalStorageDb"
 

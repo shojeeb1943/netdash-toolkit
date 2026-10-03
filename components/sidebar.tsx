@@ -10,7 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { openCommandPalette } from "@/components/command-palette"
 import {
   Network,
-  BookOpen,
   ChevronLeft,
   ChevronDown,
   ChevronRight,
@@ -40,10 +39,7 @@ const standalonePages = [
   { href: "/about", label: "About", icon: Info },
 ]
 
-// the docs are static astro output under public/, not a next route, so this must be a real navigation
-const DOCS_URL = "/docs/"
-
-const GROUPS_KEY = "netdash-sidebar-groups"
+const GROUPS_KEY = "licenbase-sidebar-groups"
 
 // active also carries aria-current and an emerald rail, so the state survives greyscale
 const rowClass = (active: boolean) =>
@@ -150,7 +146,7 @@ export function Sidebar({ isOpen, onToggle, variant = "desktop" }: SidebarProps)
               <div className="bg-primary flex size-8 items-center justify-center rounded-lg">
                 <Network className="text-primary-foreground size-5" aria-hidden="true" />
               </div>
-              <span className="text-sidebar-foreground leading-none font-semibold">NetDash</span>
+              <span className="text-sidebar-foreground leading-none font-semibold">LicenBase</span>
             </Link>
           )}
           <Button
@@ -356,17 +352,6 @@ export function Sidebar({ isOpen, onToggle, variant = "desktop" }: SidebarProps)
                         onNavigate={handleNavigate}
                       />
                     ))}
-                    <a
-                      href={DOCS_URL}
-                      aria-label={showLabels ? undefined : "Docs"}
-                      className={cn(
-                        rowClass(false),
-                        showLabels ? "pl-2" : "justify-center pr-0 pl-0"
-                      )}
-                    >
-                      <BookOpen className="size-4 shrink-0" aria-hidden="true" />
-                      {showLabels && <span className="min-w-0 flex-1 truncate">Docs</span>}
-                    </a>
                   </div>
                 </>
               )}
