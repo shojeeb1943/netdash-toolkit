@@ -22,7 +22,14 @@ export const metadata: Metadata = {
     "whois lookup",
   ],
   alternates: { canonical: canonical("/") },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: canonical("/") },
+  openGraph: {
+    type: "website",
+    siteName: BRAND,
+    title: TITLE,
+    description: DESCRIPTION,
+    url: canonical("/"),
+    locale: "en_US",
+  },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 }
 

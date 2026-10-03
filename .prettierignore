@@ -7,3 +7,4 @@ release
 pnpm-lock.yaml
 package-lock.json
 .claude
+lib/lb-chrome.generated.ts
