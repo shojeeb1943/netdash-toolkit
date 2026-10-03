@@ -15,6 +15,7 @@ import {
   categories,
   getToolBySlug,
   getToolsByCategory,
+  isOffline,
   type ToolDefinition,
 } from "@/lib/tool-registry"
 import { rememberToolVisit } from "@/components/command-palette"
@@ -95,6 +96,29 @@ function RelatedTools({ tool }: { tool: ToolDefinition }) {
   )
 }
 
+// crawlable copy that restates the registry entry: what the tool does, and the privacy line the card already shows
+function AboutTool({ tool }: { tool: ToolDefinition }) {
+  const offline = isOffline(tool)
+  return (
+    <section aria-labelledby="about-tool" className="border-border border-t pt-6">
+      <h2 id="about-tool" className="text-sm font-semibold">
+        About this tool
+      </h2>
+      <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed">
+        {tool.description}.{" "}
+        {offline
+          ? "It runs entirely in your browser, so nothing you type is uploaded."
+          : "It contacts a third-party host only when you ask it to, and the tool names that host first."}
+      </p>
+      <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">
+        {tool.features.map((feature) => (
+          <li key={feature}>{feature}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 // the placeholder repeats ToolHeader's title and geometry so the swap does not jump
 function ToolSkeleton({ tool }: { tool: ToolDefinition }) {
   const Icon = tool.icon
@@ -149,6 +173,8 @@ export function ToolShell({ slug }: { slug: string }) {
       </Suspense>
 
       <LbCta />
+
+      <AboutTool tool={tool} />
 
       <div className="pt-2">
         <RelatedTools tool={tool} />

@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { ToolShell } from "@/components/tool-shell"
 import { getToolBySlug, isOffline, tools } from "@/lib/tool-registry"
-import { BRAND, canonical, pageTitle } from "@/lib/site"
+import { BRAND, SITE_ORIGIN, canonical, pageTitle } from "@/lib/site"
+import { categoryLabelOf } from "@/lib/tool-registry"
 
 // static export: every tool page is enumerated at build time, so unknown slugs fail the build
 export const dynamicParams = false
@@ -47,5 +48,49 @@ export async function generateMetadata({
 
 export default async function ToolPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  return <ToolShell slug={slug} />
+  const tool = getToolBySlug(slug)
+  return (
+    <>
+      {tool && (
+        <script
+          type="application/ld+json"
+          // only claims that are true of the page: a free, browser-run tool inside a named category
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                name: tool.title,
+                description: tool.description,
+                url: canonical(`/${tool.slug}`),
+                applicationCategory: "UtilitiesApplication",
+                applicationSubCategory: categoryLabelOf(tool),
+                operatingSystem: "Any",
+                browserRequirements: "Requires JavaScript",
+                isAccessibleForFree: true,
+                featureList: tool.features,
+                offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+                publisher: { "@type": "Organization", name: BRAND, url: SITE_ORIGIN },
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                  { "@type": "ListItem", position: 1, name: "LicenBase", item: `${SITE_ORIGIN}/` },
+                  { "@type": "ListItem", position: 2, name: "Tools", item: canonical("/") },
+                  {
+                    "@type": "ListItem",
+                    position: 3,
+                    name: tool.title,
+                    item: canonical(`/${tool.slug}`),
+                  },
+                ],
+              },
+            ]).replace(/</g, "\u003c"),
+          }}
+        />
+      )}
+      <ToolShell slug={slug} />
+    </>
+  )
 }
