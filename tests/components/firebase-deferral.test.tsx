@@ -27,7 +27,7 @@ vi.mock("firebase/auth", () => {
   return h.authImport.fn()
 })
 
-const HINT_KEY = "netdash-auth-session"
+const HINT_KEY = "licenbase-auth-session"
 const FIREBASE_DB = "firebaseLocalStorageDb"
 
 beforeEach(() => {

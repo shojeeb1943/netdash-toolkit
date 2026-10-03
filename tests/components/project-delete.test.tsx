@@ -80,8 +80,8 @@ vi.mock("@/lib/sharing", () => ({
   findUserByEmail: async () => null,
 }))
 
-const STORAGE_KEY = "netdash-projects"
-const TOMBSTONE_KEY = "netdash-deleted-projects"
+const STORAGE_KEY = "licenbase-projects"
+const TOMBSTONE_KEY = "licenbase-deleted-projects"
 const CLOUD_P1: Doc[] = [{ id: "p1", data: { name: "Site A", items: [], updatedAt: 1 } }]
 
 function seed(id: string, name: string) {
