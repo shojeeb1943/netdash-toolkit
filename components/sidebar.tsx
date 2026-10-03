@@ -68,7 +68,7 @@ export function Sidebar({ isOpen, onToggle, variant = "desktop" }: SidebarProps)
   }
 
   const activeCategory = useMemo<ToolCategory | null>(() => {
-    const match = tools.find((tool) => isActive(`/tools/${tool.slug}`))
+    const match = tools.find((tool) => isActive(`/${tool.slug}`))
     return match?.category ?? null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
@@ -217,7 +217,7 @@ export function Sidebar({ isOpen, onToggle, variant = "desktop" }: SidebarProps)
                   </p>
                   {matches.map((tool) => {
                     const ToolIcon = tool.icon
-                    const href = `/tools/${tool.slug}`
+                    const href = `/${tool.slug}`
                     const active = isActive(href)
                     return (
                       <Link
@@ -319,7 +319,7 @@ export function Sidebar({ isOpen, onToggle, variant = "desktop" }: SidebarProps)
                           >
                             {categoryTools.map((tool) => {
                               const ToolIcon = tool.icon
-                              const href = `/tools/${tool.slug}`
+                              const href = `/${tool.slug}`
                               const active = isActive(href)
                               return (
                                 <Link

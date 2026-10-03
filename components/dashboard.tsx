@@ -44,7 +44,7 @@ function ToolTile({ tool, showCategory }: { tool: ToolDefinition; showCategory?:
   const Icon = tool.icon
   return (
     <Link
-      href={`/tools/${tool.slug}`}
+      href={`/${tool.slug}`}
       className={cn(
         "group bg-card hover:border-primary/40 hover:bg-muted/40 flex gap-3 rounded-lg border p-3 transition-colors",
         "focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
@@ -191,7 +191,7 @@ export function Dashboard() {
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     const first = results[0]
-    if (first) router.push(`/tools/${first.slug}`)
+    if (first) router.push(`/${first.slug}`)
   }
 
   const clearFilters = () => {
@@ -258,7 +258,7 @@ export function Dashboard() {
           {/* a second search button under a search box is the same route twice; "start using it" and "tell me what it is" are not */}
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" asChild>
-              <Link href={`/tools/${leadTool.slug}`}>
+              <Link href={`/${leadTool.slug}`}>
                 Open {leadTool.title}
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </Link>

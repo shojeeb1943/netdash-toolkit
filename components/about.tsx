@@ -145,7 +145,7 @@ export function About() {
                   <tr key={tool.slug} className="border-border/60 border-b last:border-0">
                     <td className="py-2 pr-4 align-top">
                       <Link
-                        href={`/tools/${tool.slug}`}
+                        href={`/${tool.slug}`}
                         className="focus-visible:ring-ring focus-visible:ring-offset-background rounded underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                       >
                         {tool.title}

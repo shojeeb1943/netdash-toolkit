@@ -82,7 +82,7 @@ function RelatedTools({ tool }: { tool: ToolDefinition }) {
         {siblings.map((sibling) => (
           <li key={sibling.slug}>
             <Link
-              href={`/tools/${sibling.slug}`}
+              href={`/${sibling.slug}`}
               className="border-border hover:border-primary/40 hover:bg-muted/40 focus-visible:ring-ring focus-visible:ring-offset-background inline-flex h-8 items-center rounded-full border px-3 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               {sibling.title}

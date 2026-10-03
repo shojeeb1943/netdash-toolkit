@@ -136,7 +136,7 @@ export function CommandPalette() {
     (tool: ToolDefinition) => {
       rememberToolVisit(tool.slug)
       setOpen(false)
-      router.push(`/tools/${tool.slug}`)
+      router.push(`/${tool.slug}`)
     },
     [router]
   )

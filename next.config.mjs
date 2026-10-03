@@ -14,6 +14,8 @@ const nextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
+  // LicenBase serves the suite under /tools and routes tools at /[slug]; links get the prefix from basePath
+  basePath: "/tools",
 }
 
 export default nextConfig
