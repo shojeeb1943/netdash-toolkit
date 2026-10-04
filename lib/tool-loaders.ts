@@ -770,6 +770,18 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/pwned-password-checker").then((m) => ({
       default: m.PwnedPasswordChecker,
     })),
+  "dnssec-checker": () =>
+    import("@/components/tools/dnssec-checker").then((m) => ({ default: m.DnssecChecker })),
+  "nameserver-delegation-checker": () =>
+    import("@/components/tools/nameserver-delegation-checker").then((m) => ({
+      default: m.NameserverDelegationChecker,
+    })),
+  "subdomain-finder": () =>
+    import("@/components/tools/subdomain-finder").then((m) => ({ default: m.SubdomainFinder })),
+  "dns-resolver-comparison": () =>
+    import("@/components/tools/dns-resolver-comparison").then((m) => ({
+      default: m.DnsResolverComparison,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

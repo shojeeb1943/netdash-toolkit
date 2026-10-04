@@ -6,6 +6,7 @@ export interface Faq {
 }
 
 import { dev_httpFaqs } from "@/lib/faqs/dev-http"
+import { dns_depthFaqs } from "@/lib/faqs/dns-depth"
 import { emailFaqs } from "@/lib/faqs/email"
 import { eol_securityFaqs } from "@/lib/faqs/eol-security"
 import { file_toolsFaqs } from "@/lib/faqs/file-tools"
@@ -20,6 +21,7 @@ import { text_toolsFaqs } from "@/lib/faqs/text-tools"
 
 export const toolFaqs: Record<string, Faq[]> = {
   ...dev_httpFaqs,
+  ...dns_depthFaqs,
   ...emailFaqs,
   ...eol_securityFaqs,
   ...file_toolsFaqs,

@@ -73,12 +73,7 @@ export function makeEolTool(config: EolToolConfig): ComponentType {
 
     return (
       <div className="space-y-6">
-        <ToolHeader
-          title={tool.title}
-          description={tool.description}
-          icon={config.icon}
-          tool={tool}
-        />
+        <ToolHeader title={tool.title} description={tool.description} icon={config.icon} />
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>

@@ -3251,6 +3251,107 @@ export const tools: ToolDefinition[] = [
     },
     keywords: ["pwned-passwords", "hibp", "password-leak", "breached-password", "security-audit"],
   },
+  {
+    slug: "dnssec-checker",
+    label: "DNSSEC Checker",
+    title: "DNSSEC Status & DS/DNSKEY Validation Checker",
+    description:
+      "Check DNSSEC validation status, Authenticated Data flags, and parent DS and DNSKEY records",
+    icon: ShieldCheck,
+    category: "diagnostics",
+    features: [
+      "Cryptographic trust chain status",
+      "Authenticated Data (AD) flag inspection",
+      "Parent zone DS record verification",
+      "Apex DNSKEY record validation",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["dns.google"],
+    },
+    keywords: ["dnssec", "dns-security", "ds-record", "dnskey", "dnssec-validation", "ad-flag"],
+  },
+  {
+    slug: "nameserver-delegation-checker",
+    label: "Nameserver Delegation",
+    title: "Nameserver Delegation & Parity Checker",
+    description:
+      "Compare parent registry RDAP nameservers with live zone apex NS records to detect mismatches",
+    icon: Globe,
+    category: "domains",
+    features: [
+      "Parent registry RDAP nameserver extraction",
+      "Live authoritative NS record resolution",
+      "Delegation mismatch identification",
+      "Lame delegation detection",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["rdap.org", "dns.google"],
+    },
+    keywords: [
+      "nameserver-delegation",
+      "ns-checker",
+      "lame-delegation",
+      "rdap-nameservers",
+      "dns-glue",
+    ],
+  },
+  {
+    slug: "subdomain-finder",
+    label: "Subdomain Finder",
+    title: "Certificate Transparency Subdomain Finder",
+    description:
+      "Discover active and historical subdomains for any domain from public Certificate Transparency logs",
+    icon: Layers,
+    category: "domains",
+    features: [
+      "Certificate Transparency index discovery",
+      "Wildcard prefix cleanup and sorting",
+      "Deduplicated subdomain hostname list",
+      "One-click copy and text export",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["api.certspotter.com"],
+    },
+    keywords: [
+      "subdomain-finder",
+      "subdomains",
+      "ct-logs",
+      "reconnaissance",
+      "certspotter",
+      "domain-enum",
+    ],
+  },
+  {
+    slug: "dns-resolver-comparison",
+    label: "DNS Resolver Comparison",
+    title: "Google DNS vs Cloudflare DNS Resolver Comparison",
+    description:
+      "Compare DNS responses, records, and TTLs side by side across Google DNS and Cloudflare DNS",
+    icon: ArrowLeftRight,
+    category: "diagnostics",
+    features: [
+      "Parallel Google and Cloudflare DNS queries",
+      "Side-by-side answer and TTL diffing",
+      "A, AAAA, CNAME, MX, TXT, and NS support",
+      "Latency and Authenticated Data inspection",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["dns.google", "cloudflare-dns.com"],
+    },
+    keywords: [
+      "dns-comparison",
+      "dns-propagation",
+      "google-dns",
+      "cloudflare-dns",
+      "doh-comparison",
+    ],
+  },
 ]
 
 // standalone nav items, not tools. everything renders from this registry; there is no other list.
