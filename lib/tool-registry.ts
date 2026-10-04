@@ -150,6 +150,11 @@ import {
   GitCompare,
   ListX,
   Table2,
+  FileDown,
+  FileImage,
+  FolderOpen,
+  ScanSearch,
+  Sparkle,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -169,6 +174,7 @@ export type ToolCategory =
   | "email"
   | "http"
   | "security"
+  | "files"
 
 export type ProjectItemType =
   | "subnet"
@@ -338,6 +344,12 @@ export const categories: CategoryDefinition[] = [
     label: "Security & Crypto",
     icon: ShieldCheck,
     description: "Random secrets, signatures, tokens and validators that run in your browser",
+  },
+  {
+    id: "files",
+    label: "Files & Data",
+    icon: FolderOpen,
+    description: "Open, convert and inspect files locally without uploading them",
   },
 ]
 
@@ -2880,6 +2892,62 @@ export const tools: ToolDefinition[] = [
     category: "devtools",
     features: ["Path based", "Ignores key order", "Arrays by position"],
     keywords: ["json diff", "compare json", "json compare", "difference", "api response"],
+  },
+  // === file-tools ===
+  {
+    slug: "csv-viewer",
+    label: "CSV Viewer",
+    title: "CSV Viewer",
+    description:
+      "Open a CSV or TSV file or paste one, then search, sort and read it as a table without uploading it",
+    icon: Table2,
+    category: "files",
+    features: ["Search and sort", "Auto delimiter", "Local file"],
+    keywords: ["csv viewer", "open csv", "tsv", "table", "spreadsheet"],
+  },
+  {
+    slug: "image-metadata-viewer",
+    label: "Image Metadata Viewer",
+    title: "Image Metadata Viewer",
+    description:
+      "See an image's size, dimensions and camera EXIF data, and whether it hides GPS location, all in your browser",
+    icon: ScanSearch,
+    category: "files",
+    features: ["EXIF fields", "GPS warning", "Clean copy"],
+    keywords: ["image metadata", "exif", "gps", "image size", "dimensions"],
+  },
+  {
+    slug: "image-to-base64",
+    label: "Image to Base64",
+    title: "Image to Base64 Converter",
+    description:
+      "Turn an image into a Base64 data URI with ready HTML and CSS snippets, without uploading it anywhere",
+    icon: FileImage,
+    category: "files",
+    features: ["Data URI", "HTML and CSS snippets", "Size comparison"],
+    keywords: ["image to base64", "data uri", "base64", "inline image", "encode"],
+  },
+  {
+    slug: "data-uri-to-file",
+    label: "Data URI to File",
+    title: "Data URI to File Converter",
+    description:
+      "Decode a data URI back into a downloadable file and see its type and size, entirely in your browser",
+    icon: FileDown,
+    category: "files",
+    features: ["Download file", "Safe preview", "Type and size"],
+    keywords: ["data uri", "base64 to file", "decode", "download", "base64 image"],
+  },
+  {
+    slug: "favicon-generator",
+    label: "Favicon Generator",
+    title: "Favicon Generator",
+    description:
+      "Make a simple letter or emoji favicon in every size browsers and phones need, then download the PNG files",
+    icon: Sparkle,
+    category: "files",
+    features: ["Six sizes", "Letter or emoji", "Head and manifest code"],
+    keywords: ["favicon", "icon generator", "apple touch icon", "png", "site icon"],
   },
 ]
 

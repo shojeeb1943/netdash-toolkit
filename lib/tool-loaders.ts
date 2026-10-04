@@ -720,6 +720,18 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/tsv-to-csv").then((m) => ({ default: m.TsvToCsv })),
   "text-diff": () => import("@/components/tools/text-diff").then((m) => ({ default: m.TextDiff })),
   "json-diff": () => import("@/components/tools/json-diff").then((m) => ({ default: m.JsonDiff })),
+  "csv-viewer": () =>
+    import("@/components/tools/csv-viewer").then((m) => ({ default: m.CsvViewer })),
+  "image-metadata-viewer": () =>
+    import("@/components/tools/image-metadata-viewer").then((m) => ({
+      default: m.ImageMetadataViewer,
+    })),
+  "image-to-base64": () =>
+    import("@/components/tools/image-to-base64").then((m) => ({ default: m.ImageToBase64 })),
+  "data-uri-to-file": () =>
+    import("@/components/tools/data-uri-to-file").then((m) => ({ default: m.DataUriToFile })),
+  "favicon-generator": () =>
+    import("@/components/tools/favicon-generator").then((m) => ({ default: m.FaviconGenerator })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {
