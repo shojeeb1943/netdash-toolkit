@@ -782,6 +782,14 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/dns-resolver-comparison").then((m) => ({
       default: m.DnsResolverComparison,
     })),
+  "hosting-price-currency-converter": () =>
+    import("@/components/tools/hosting-price-currency-converter").then((m) => ({
+      default: m.HostingPriceCurrencyConverter,
+    })),
+  "license-price-currency-converter": () =>
+    import("@/components/tools/license-price-currency-converter").then((m) => ({
+      default: m.LicensePriceCurrencyConverter,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

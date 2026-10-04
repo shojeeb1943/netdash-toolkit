@@ -3352,6 +3352,62 @@ export const tools: ToolDefinition[] = [
       "doh-comparison",
     ],
   },
+  {
+    slug: "hosting-price-currency-converter",
+    label: "Hosting Price Currency Converter",
+    title: "Hosting Price Currency Converter",
+    description:
+      "Convert web hosting, VPS, and cloud infrastructure prices between USD, BDT, EUR, GBP, INR, and global currencies with live exchange rates.",
+    icon: DollarSign,
+    category: "hosting",
+    features: [
+      "Real-time mid-market exchange rate conversion",
+      "Support for over 160 international fiat currencies",
+      "Calculations for hosting invoices, VPS, and dedicated servers",
+      "Browser cached currency rates for instant lookups",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["open.er-api.com"],
+    },
+    keywords: [
+      "hosting-currency",
+      "hosting-price-converter",
+      "exchange-rate",
+      "usd-to-bdt",
+      "vps-price-converter",
+      "currency-calculator",
+    ],
+  },
+  {
+    slug: "license-price-currency-converter",
+    label: "License Price Currency Converter",
+    title: "License Price Currency Converter",
+    description:
+      "Convert software license prices for cPanel, Plesk, LiteSpeed, WHMCS, and CloudLinux into BDT, INR, EUR, GBP, and other local currencies.",
+    icon: Receipt,
+    category: "licensing",
+    features: [
+      "Official LicenBase wholesale license tier pricing catalog",
+      "Multi-term billing calculations for monthly, quarterly, and annual terms",
+      "Direct conversion into local fiat currencies with live exchange rates",
+      "Automated IP license cost estimation",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["open.er-api.com"],
+    },
+    keywords: [
+      "license-price-converter",
+      "cpanel-price-bdt",
+      "litespeed-currency-converter",
+      "plesk-price-inr",
+      "whmcs-currency-rate",
+      "software-license-pricing",
+    ],
+  },
 ]
 
 // standalone nav items, not tools. everything renders from this registry; there is no other list.
