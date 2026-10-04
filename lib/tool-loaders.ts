@@ -732,6 +732,22 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/data-uri-to-file").then((m) => ({ default: m.DataUriToFile })),
   "favicon-generator": () =>
     import("@/components/tools/favicon-generator").then((m) => ({ default: m.FaviconGenerator })),
+  "website-hosting-checker": () =>
+    import("@/components/tools/website-hosting-checker").then((m) => ({
+      default: m.WebsiteHostingChecker,
+    })),
+  "asn-lookup": () =>
+    import("@/components/tools/asn-lookup").then((m) => ({ default: m.AsnLookup })),
+  "ip-abuse-contact-finder": () =>
+    import("@/components/tools/ip-abuse-contact-finder").then((m) => ({
+      default: m.IpAbuseContactFinder,
+    })),
+  "bgp-prefix-lookup": () =>
+    import("@/components/tools/bgp-prefix-lookup").then((m) => ({ default: m.BgpPrefixLookup })),
+  "ip-geolocation": () =>
+    import("@/components/tools/ip-geolocation").then((m) => ({ default: m.IpGeolocation })),
+  "my-ip-address": () =>
+    import("@/components/tools/my-ip-address").then((m) => ({ default: m.MyIpAddress })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

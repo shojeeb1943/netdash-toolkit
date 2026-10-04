@@ -9,6 +9,7 @@ import { dev_httpFaqs } from "@/lib/faqs/dev-http"
 import { emailFaqs } from "@/lib/faqs/email"
 import { file_toolsFaqs } from "@/lib/faqs/file-tools"
 import { hosting_businessFaqs } from "@/lib/faqs/hosting-business"
+import { hosting_intelFaqs } from "@/lib/faqs/hosting-intel"
 import { licenses_domainsFaqs } from "@/lib/faqs/licenses-domains"
 import { linux_commandsFaqs } from "@/lib/faqs/linux-commands"
 import { security_toolsFaqs } from "@/lib/faqs/security-tools"
@@ -21,6 +22,7 @@ export const toolFaqs: Record<string, Faq[]> = {
   ...emailFaqs,
   ...file_toolsFaqs,
   ...hosting_businessFaqs,
+  ...hosting_intelFaqs,
   ...licenses_domainsFaqs,
   ...linux_commandsFaqs,
   ...security_toolsFaqs,

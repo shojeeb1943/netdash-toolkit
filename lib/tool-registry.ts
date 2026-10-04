@@ -2949,6 +2949,126 @@ export const tools: ToolDefinition[] = [
     features: ["Six sizes", "Letter or emoji", "Head and manifest code"],
     keywords: ["favicon", "icon generator", "apple touch icon", "png", "site icon"],
   },
+  {
+    slug: "website-hosting-checker",
+    label: "Hosting Checker",
+    title: "Website Hosting Checker",
+    description: "Inspect website hosting provider, IP addresses, nameservers, and ASN details",
+    icon: Server,
+    category: "hosting",
+    features: [
+      "Hosting provider detection",
+      "DNS A/AAAA and NS lookup",
+      "Reverse PTR records",
+      "Cloud and CDN ASN identification",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["dns.google", "stat.ripe.net"],
+    },
+    keywords: ["hosting", "host-checker", "whois-hosting", "nameservers", "asn", "cdn", "cloud"],
+  },
+  {
+    slug: "asn-lookup",
+    label: "ASN Lookup",
+    title: "ASN Lookup",
+    description:
+      "Lookup Autonomous System Number holder details and announced BGP routing prefixes",
+    icon: Network,
+    category: "hosting",
+    features: [
+      "AS holder search",
+      "BGP prefix announcement table",
+      "RIR allocation block details",
+      "Real-time routing data",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["stat.ripe.net"],
+    },
+    keywords: ["asn", "bgp", "autonomous-system", "routing", "prefixes", "ripestat"],
+  },
+  {
+    slug: "ip-abuse-contact-finder",
+    label: "IP Abuse Finder",
+    title: "IP Abuse Contact Finder",
+    description:
+      "Find verified network abuse reporting email addresses and regional internet registries",
+    icon: ShieldAlert,
+    category: "hosting",
+    features: [
+      "Authoritative abuse emails",
+      "Regional registry identification",
+      "IP and CIDR prefix support",
+      "RIPEstat integration",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["stat.ripe.net"],
+    },
+    keywords: ["abuse", "security", "incident-reporting", "whois", "network-abuse", "spam-report"],
+  },
+  {
+    slug: "bgp-prefix-lookup",
+    label: "BGP Prefix Lookup",
+    title: "BGP Prefix Lookup",
+    description:
+      "Identify covering BGP prefix, origin Autonomous System, and holder for any IP address",
+    icon: Route,
+    category: "hosting",
+    features: [
+      "Covering prefix resolution",
+      "Origin ASN detection",
+      "BGP announcement verification",
+      "Registry block information",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["stat.ripe.net"],
+    },
+    keywords: ["bgp", "prefix", "route", "origin-asn", "cidr", "routing-table"],
+  },
+  {
+    slug: "ip-geolocation",
+    label: "IP Geolocation",
+    title: "IP Geolocation Lookup",
+    description:
+      "Look up approximate country, region, city, ISP, ASN, and timezone for any IP address",
+    icon: Globe2,
+    category: "hosting",
+    features: [
+      "Country and city identification",
+      "ISP and ASN details",
+      "Local timezone information",
+      "IPv4 and IPv6 support",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["ipwho.is"],
+    },
+    keywords: ["ip-location", "geolocation", "geo-ip", "isp-lookup", "country-lookup", "timezone"],
+  },
+  {
+    slug: "my-ip-address",
+    label: "My IP Address",
+    title: "My Public IP Address",
+    description:
+      "View your current public IPv4 or IPv6 address, estimated location, ISP, and ASN details",
+    icon: Globe,
+    category: "hosting",
+    features: [
+      "Instant public IP detection",
+      "ISP and organization info",
+      "Approximate location details",
+      "IPv4 and IPv6 support",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["ipwho.is", "api.ipify.org"],
+    },
+    keywords: ["my-ip", "whats-my-ip", "public-ip", "ip-address", "client-ip", "ip-detector"],
+  },
 ]
 
 // standalone nav items, not tools. everything renders from this registry; there is no other list.

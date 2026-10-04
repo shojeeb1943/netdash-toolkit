@@ -155,7 +155,7 @@ what it does not stop, stated with the reason rather than left implied:
 
 ### What the App Contacts
 
-beyond the host a user types into those tools, the app contacts 10 fixed third-party hosts, each of them also declared per tool in the UI before the tool runs.
+beyond the host a user types into those tools, the app contacts 13 fixed third-party hosts, each of them also declared per tool in the UI before the tool runs.
 
 <!-- egress:app:start -->
 
@@ -171,6 +171,9 @@ beyond the host a user types into those tools, the app contacts 10 fixed third-p
 | `api.certspotter.com`             | certificate transparency logs | `lib/cert-transparency.ts`                         |
 | `observatory-api.mdn.mozilla.net` | Mozilla's header scan         | `components/tools/security-headers/`               |
 | `api.hackertarget.com`            | header relay, unaffiliated    | `lib/http-relay.ts`                                |
+| `stat.ripe.net`                   | RIPEstat routing data         | `lib/ripestat.ts`                                  |
+| `ipwho.is`                        | IP geolocation API            | `lib/ipwhois.ts`                                   |
+| `api.ipify.org`                   | public IP fallback API        | `lib/ipwhois.ts`                                   |
 
 <!-- egress:app:end -->
 
