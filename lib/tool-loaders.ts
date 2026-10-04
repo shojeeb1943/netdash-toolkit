@@ -682,6 +682,28 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/security-header-generator").then((m) => ({
       default: m.SecurityHeaderGenerator,
     })),
+  "passphrase-generator": () =>
+    import("@/components/tools/passphrase-generator").then((m) => ({
+      default: m.PassphraseGenerator,
+    })),
+  "api-key-generator": () =>
+    import("@/components/tools/api-key-generator").then((m) => ({ default: m.ApiKeyGenerator })),
+  "secret-generator": () =>
+    import("@/components/tools/secret-generator").then((m) => ({ default: m.SecretGenerator })),
+  "token-generator": () =>
+    import("@/components/tools/token-generator").then((m) => ({ default: m.TokenGenerator })),
+  "hmac-generator": () =>
+    import("@/components/tools/hmac-generator").then((m) => ({ default: m.HmacGenerator })),
+  "jwt-generator": () =>
+    import("@/components/tools/jwt-generator").then((m) => ({ default: m.JwtGenerator })),
+  "jwt-expiry-calculator": () =>
+    import("@/components/tools/jwt-expiry-calculator").then((m) => ({
+      default: m.JwtExpiryCalculator,
+    })),
+  "uuid-validator": () =>
+    import("@/components/tools/uuid-validator").then((m) => ({ default: m.UuidValidator })),
+  "csp-hash-generator": () =>
+    import("@/components/tools/csp-hash-generator").then((m) => ({ default: m.CspHashGenerator })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

@@ -2,6 +2,7 @@
 // each definition is a field list plus one pure build(); nothing here touches the network.
 
 import { parseCsv } from "@/lib/csv"
+import { PASSPHRASE_WORDS } from "@/lib/wordlist"
 import { HTTP_STATUS, MIME_TYPES, UA_BROWSERS } from "@/lib/http-data"
 
 export type GValue = string | number | boolean
@@ -3140,6 +3141,301 @@ function markdownTableBuild(v: GValues): GResult {
   return [row(head), `| ${sep.join(" | ")} |`, ...body.map(row)].join("\n")
 }
 
+// ---------- batch 8a: security generators ----------
+
+const B62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+const B64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+const TOKEN_SETS: Record<string, string> = {
+  base62: B62,
+  hex: "0123456789abcdef",
+  numbers: "0123456789",
+  upper: "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+}
+
+function pickChars(alphabet: string, length: number): string {
+  let out = ""
+  for (let i = 0; i < length; i++) out += alphabet[randomInt(alphabet.length)]
+  return out
+}
+
+function randomBytes(n2: number): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(n2))
+}
+
+const toHex = (b2: Uint8Array) => Array.from(b2, (x) => x.toString(16).padStart(2, "0")).join("")
+const toBase64 = (b2: Uint8Array) => {
+  let bin = ""
+  b2.forEach((x) => (bin += String.fromCharCode(x)))
+  return btoa(bin)
+}
+const toBase64Url = (b2: Uint8Array) =>
+  toBase64(b2).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+const fromBase64Url = (t: string) => {
+  const pad = t.replace(/-/g, "+").replace(/_/g, "/")
+  const bin = atob(pad + "=".repeat((4 - (pad.length % 4)) % 4))
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0))
+}
+
+function passphraseBuild(v: GValues): GResult {
+  const count = Math.floor(n(v, "words"))
+  const total = Math.floor(n(v, "count"))
+  if (!(count >= 3 && count <= 16)) return err("Use between 3 and 16 words.")
+  if (!(total >= 1 && total <= 20)) return err("Make between 1 and 20 passphrases.")
+  const sep = { dash: "-", space: " ", dot: ".", underscore: "_", none: "" }[String(v.sep)] ?? "-"
+  const list = PASSPHRASE_WORDS.slice(0, 256)
+  const out: string[] = []
+  for (let i = 0; i < total; i++) {
+    let words2 = Array.from({ length: count }, () => list[randomInt(list.length)])
+    if (b(v, "capitalize")) words2 = words2.map((x) => x[0].toUpperCase() + x.slice(1))
+    let phrase = words2.join(sep)
+    if (b(v, "number")) phrase += sep + randomInt(100)
+    out.push(phrase)
+  }
+  const bits = count * 8 + (b(v, "number") ? Math.log2(100) : 0)
+  return [
+    ...out,
+    "",
+    `About ${bits.toFixed(0)} bits of randomness (${count} words from a ${list.length} word list${b(v, "number") ? " plus a number" : ""}).`,
+    bits < 64
+      ? "Under 64 bits is weak against an offline attack: add words."
+      : bits < 80
+        ? "Reasonable for most accounts; add words for anything valuable."
+        : "Strong.",
+  ].join("\n")
+}
+
+function apiKeyBuild(v: GValues): GResult {
+  const prefix = s(v, "prefix")
+  if (prefix && !/^[a-z][a-z0-9_]{0,23}$/.test(prefix))
+    return err("Prefix can use lowercase letters, numbers and underscores, starting with a letter.")
+  const length = Math.floor(n(v, "length"))
+  const count = Math.floor(n(v, "count"))
+  if (!(length >= 16 && length <= 128)) return err("Length must be between 16 and 128.")
+  if (!(count >= 1 && count <= 50)) return err("Make between 1 and 50 keys.")
+  const alphabet = v.charset === "hex" ? TOKEN_SETS.hex : v.charset === "base64url" ? B64URL : B62
+  const keys = Array.from(
+    { length: count },
+    () => (prefix ? `${prefix}_` : "") + pickChars(alphabet, length)
+  )
+  return [
+    ...keys,
+    "",
+    `About ${(length * Math.log2(alphabet.length)).toFixed(0)} bits of randomness per key.`,
+    "Store only a hash of each key on your server, and show the key to its owner once.",
+  ].join("\n")
+}
+
+function secretBuild(v: GValues): GResult {
+  const bytes = Math.floor(n(v, "bytes"))
+  const count = Math.floor(n(v, "count"))
+  if (!(bytes >= 8 && bytes <= 128)) return err("Use between 8 and 128 bytes.")
+  if (!(count >= 1 && count <= 20)) return err("Make between 1 and 20 secrets.")
+  const enc = String(v.encoding)
+  const fmt = (x: Uint8Array) =>
+    enc === "hex" ? toHex(x) : enc === "base64" ? toBase64(x) : toBase64Url(x)
+  const out = Array.from({ length: count }, () => fmt(randomBytes(bytes)))
+  const cmd = enc === "hex" ? `openssl rand -hex ${bytes}` : `openssl rand -base64 ${bytes}`
+  return [
+    ...out,
+    "",
+    `${bytes * 8} bits each. The same on a server:`,
+    cmd,
+    "",
+    "Keep secrets out of source control: put them in environment variables or a secrets manager.",
+  ].join("\n")
+}
+
+function tokenBuild(v: GValues): GResult {
+  const length = Math.floor(n(v, "length"))
+  const count = Math.floor(n(v, "count"))
+  const group = Math.floor(n(v, "group"))
+  if (!(length >= 8 && length <= 256)) return err("Length must be between 8 and 256.")
+  if (!(count >= 1 && count <= 50)) return err("Make between 1 and 50 tokens.")
+  if (!(group >= 0 && group <= 32)) return err("Group size is 0 to 32.")
+  const alphabet = TOKEN_SETS[String(v.charset)]
+  if (!alphabet) return err("Pick a character set.")
+  const out = Array.from({ length: count }, () => {
+    const t = pickChars(alphabet, length)
+    return group > 0 ? (t.match(new RegExp(`.{1,${group}}`, "g")) ?? [t]).join("-") : t
+  })
+  return [
+    ...out,
+    "",
+    `About ${(length * Math.log2(alphabet.length)).toFixed(0)} bits of randomness per token.`,
+  ].join("\n")
+}
+
+async function hmacBuild(v: GValues): Promise<GResult> {
+  const message = String(v.message ?? "")
+  const keyText = String(v.key ?? "")
+  if (!keyText) return err("Enter a secret key.")
+  let keyBytes: Uint8Array
+  if (v.keyFormat === "hex") {
+    if (!/^([0-9a-fA-F]{2})+$/.test(keyText))
+      return err("A hex key needs an even number of hex digits.")
+    keyBytes = Uint8Array.from(keyText.match(/../g)!.map((h) => parseInt(h, 16)))
+  } else keyBytes = new TextEncoder().encode(keyText)
+  const hash = String(v.algo)
+  if (!["SHA-1", "SHA-256", "SHA-384", "SHA-512"].includes(hash)) return err("Pick an algorithm.")
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyBytes as BufferSource,
+    { name: "HMAC", hash },
+    false,
+    ["sign"]
+  )
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message))
+  )
+  return [
+    `Hex:     ${toHex(sig)}`,
+    `Base64:  ${toBase64(sig)}`,
+    `Base64url: ${toBase64Url(sig)}`,
+    "",
+    `HMAC-${hash} over ${message.length} characters. The key never leaves this page.`,
+  ].join("\n")
+}
+
+async function jwtGenBuild(v: GValues): Promise<GResult> {
+  const alg = String(v.alg)
+  const bits = { HS256: "SHA-256", HS384: "SHA-384", HS512: "SHA-512" }[alg]
+  if (!bits) return err("Pick an algorithm.")
+  let payload: Record<string, unknown>
+  try {
+    const parsed = JSON.parse(String(v.payload ?? ""))
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error()
+    payload = parsed
+  } catch {
+    return err('The payload must be a JSON object such as {"sub": "123"}.')
+  }
+  const secret = String(v.secret ?? "")
+  if (!secret) return err("Enter a signing secret.")
+  const minutes = Math.floor(n(v, "minutes"))
+  if (!(minutes >= 0 && minutes <= 525600)) return err("Expiry is 0 to 525600 minutes.")
+  const now = Math.floor(Date.now() / 1000)
+  if (b(v, "iat") && payload.iat === undefined) payload.iat = now
+  if (minutes > 0 && payload.exp === undefined) payload.exp = now + minutes * 60
+  const enc = (o: unknown) => toBase64Url(new TextEncoder().encode(JSON.stringify(o)))
+  const signingInput = `${enc({ alg, typ: "JWT" })}.${enc(payload)}`
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret) as BufferSource,
+    { name: "HMAC", hash: bits },
+    false,
+    ["sign"]
+  )
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signingInput))
+  )
+  return [
+    `${signingInput}.${toBase64Url(sig)}`,
+    "",
+    ...(secret.length < 32
+      ? ["Warning: use a secret of at least 32 random characters in production."]
+      : []),
+    "Anyone holding the secret can mint valid tokens. This tool is for testing: it never sends the secret anywhere.",
+  ].join("\n")
+}
+
+function jwtExpiryBuild(v: GValues): GResult {
+  const token = s(v, "token").replace(/^Bearer\s+/i, "")
+  const parts = token.split(".")
+  if (
+    parts.length !== 3 ||
+    parts.some((p) => !/^[A-Za-z0-9_-]*$/.test(p)) ||
+    !parts[0] ||
+    !parts[1]
+  )
+    return err("A JWT has three dot separated parts made of letters, numbers, - and _.")
+  let payload: Record<string, unknown>
+  try {
+    payload = JSON.parse(new TextDecoder().decode(fromBase64Url(parts[1])))
+    if (!payload || typeof payload !== "object") throw new Error()
+  } catch {
+    return err("The payload could not be decoded as JSON.")
+  }
+  const now = Math.floor(Date.now() / 1000)
+  const when = (label: string, claim: unknown) => {
+    if (typeof claim !== "number" || !Number.isFinite(claim)) return `${label.padEnd(11)} (not set)`
+    const diff = claim - now
+    const abs = Math.abs(diff)
+    const span =
+      abs >= 86400
+        ? `${Math.floor(abs / 86400)}d ${Math.floor((abs % 86400) / 3600)}h`
+        : abs >= 3600
+          ? `${Math.floor(abs / 3600)}h ${Math.floor((abs % 3600) / 60)}m`
+          : `${Math.floor(abs / 60)}m ${abs % 60}s`
+    return `${label.padEnd(11)} ${new Date(claim * 1000).toISOString()}  (${diff >= 0 ? `in ${span}` : `${span} ago`})`
+  }
+  const exp = payload.exp
+  const nbf = payload.nbf
+  const status =
+    typeof exp === "number" && exp <= now
+      ? "EXPIRED"
+      : typeof nbf === "number" && nbf > now
+        ? "NOT VALID YET"
+        : typeof exp === "number"
+          ? "VALID (time claims only)"
+          : "NO EXPIRY SET: this token never expires"
+  return [
+    `Status:      ${status}`,
+    "",
+    when("Issued (iat)", payload.iat),
+    when("Not before", nbf),
+    when("Expires", exp),
+    "",
+    "The signature is not checked here: a token can look valid and still be forged.",
+    "Only your server, holding the key, can verify it.",
+  ].join("\n")
+}
+
+function uuidValidateBuild(v: GValues): GResult {
+  const list = lines(s(v, "uuids"))
+  if (!list.length) return err("Enter one UUID per line.")
+  const re = /^\{?([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})\}?$/i
+  let good = 0
+  const rows = list.map((u) => {
+    const m = re.exec(u)
+    if (!m) return `INVALID  ${u}`
+    good++
+    const hex = m.slice(1).join("")
+    const canon =
+      `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`.toLowerCase()
+    if (/^0+$/.test(hex)) return `OK       ${canon}  nil UUID`
+    if (/^f+$/i.test(hex)) return `OK       ${canon}  max UUID`
+    const version = parseInt(hex[12], 16)
+    const variantNibble = parseInt(hex[16], 16)
+    const variant =
+      variantNibble >= 8 && variantNibble <= 11
+        ? "RFC 4122/9562"
+        : variantNibble < 8
+          ? "NCS (reserved)"
+          : variantNibble < 14
+            ? "Microsoft (reserved)"
+            : "future"
+    return `${version >= 1 && version <= 8 && variant === "RFC 4122/9562" ? "OK      " : "CHECK   "} ${canon}  version ${version}, variant ${variant}`
+  })
+  return [`${good} of ${list.length} are well formed`, "", ...rows].join("\n")
+}
+
+async function cspHashBuild(v: GValues): Promise<GResult> {
+  const content = String(v.content ?? "")
+  if (!content)
+    return err("Paste the exact contents of the inline script or style, between the tags.")
+  const algo = String(v.algo)
+  if (!["SHA-256", "SHA-384", "SHA-512"].includes(algo)) return err("Pick a hash algorithm.")
+  const digest = new Uint8Array(await crypto.subtle.digest(algo, new TextEncoder().encode(content)))
+  const source = `'${algo.toLowerCase().replace("-", "")}-${toBase64(digest)}'`
+  const dir = v.kind === "style" ? "style-src" : "script-src"
+  return [
+    source,
+    "",
+    `Content-Security-Policy: ${dir} 'self' ${source}`,
+    "",
+    "The hash covers every character between the tags, including spaces and line breaks. Change one and the hash no longer matches.",
+  ].join("\n")
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -4362,6 +4658,162 @@ export const generatorDefs: Record<string, GDef> = {
       text("align", "Alignment per column (left, center, right)", "left, right, center"),
     ],
     build: markdownTableBuild,
+  },
+  "passphrase-generator": {
+    outputLabel: "Passphrases",
+    regenerate: true,
+    note: "Uses a 256 word list, so every word adds exactly 8 bits. Words are picked with your browser's secure random generator.",
+    fields: [
+      num("words", "Words", 6),
+      num("count", "How many passphrases", 3),
+      pick("sep", "Separator", "dash", [
+        ["dash", "Hyphen"],
+        ["space", "Space"],
+        ["dot", "Dot"],
+        ["underscore", "Underscore"],
+        ["none", "None"],
+      ]),
+      yes("capitalize", "Capitalise each word"),
+      yes("number", "Add a number at the end"),
+    ],
+    build: passphraseBuild,
+  },
+  "api-key-generator": {
+    outputLabel: "API keys",
+    regenerate: true,
+    fields: [
+      text("prefix", "Prefix (optional)", "sk_live"),
+      num("length", "Random characters", 40),
+      num("count", "How many", 3),
+      pick("charset", "Characters", "base62", [
+        ["base62", "Letters and numbers"],
+        ["hex", "Hex"],
+        ["base64url", "URL safe (A-Z a-z 0-9 - _)"],
+      ]),
+    ],
+    build: apiKeyBuild,
+  },
+  "secret-generator": {
+    outputLabel: "Secrets",
+    regenerate: true,
+    fields: [
+      num("bytes", "Size in bytes", 32),
+      num("count", "How many", 1),
+      pick("encoding", "Encoding", "hex", [
+        ["hex", "Hex"],
+        ["base64", "Base64"],
+        ["base64url", "Base64 URL safe"],
+      ]),
+    ],
+    build: secretBuild,
+  },
+  "token-generator": {
+    outputLabel: "Tokens",
+    regenerate: true,
+    fields: [
+      num("length", "Length", 32),
+      num("count", "How many", 5),
+      pick("charset", "Characters", "base62", [
+        ["base62", "Letters and numbers"],
+        ["hex", "Hex"],
+        ["numbers", "Numbers only"],
+        ["upper", "Upper case, no look-alikes"],
+      ]),
+      num("group", "Insert a hyphen every N characters (0 for none)", 0),
+    ],
+    build: tokenBuild,
+  },
+  "hmac-generator": {
+    outputLabel: "HMAC",
+    note: "Computed with the Web Crypto API in your browser. The key and message are not sent anywhere.",
+    fields: [
+      area("message", "Message", "The quick brown fox"),
+      text("key", "Secret key", "my-secret"),
+      pick("keyFormat", "Key is", "text", [
+        ["text", "Plain text"],
+        ["hex", "Hex bytes"],
+      ]),
+      pick("algo", "Algorithm", "SHA-256", [
+        ["SHA-1", "SHA-1"],
+        ["SHA-256", "SHA-256"],
+        ["SHA-384", "SHA-384"],
+        ["SHA-512", "SHA-512"],
+      ]),
+    ],
+    help: [
+      "HMAC proves a message came from someone holding the key and was not changed.",
+      "Use SHA-256 or stronger for new work: SHA-1 HMAC is only for legacy systems.",
+      "Compare signatures in constant time on your server to avoid timing leaks.",
+      "A different key or even one changed character in the message gives a completely different result.",
+    ],
+    build: hmacBuild,
+  },
+  "jwt-generator": {
+    outputLabel: "Signed token",
+    note: "For testing and development. Keep real signing secrets out of any website.",
+    fields: [
+      pick("alg", "Algorithm", "HS256", [
+        ["HS256", "HS256"],
+        ["HS384", "HS384"],
+        ["HS512", "HS512"],
+      ]),
+      area("payload", "Payload (JSON)", '{\n  "sub": "1234567890",\n  "name": "Jane Doe"\n}'),
+      text("secret", "Signing secret", "change-me-to-a-long-random-secret-value"),
+      num("minutes", "Expires after (minutes, 0 for none)", 60),
+      yes("iat", "Add issued-at time", true),
+    ],
+    help: [
+      "A JWT is three base64url parts: header, payload and signature, joined by dots.",
+      "The payload is readable by anyone: never put passwords or secrets in it.",
+      "HS256 uses one shared secret. Use RS256 or ES256 when other parties must verify but not issue tokens.",
+      "Always set an expiry and check it on the server.",
+    ],
+    build: jwtGenBuild,
+  },
+  "jwt-expiry-calculator": {
+    outputLabel: "Time claims",
+    note: "The token is decoded in your browser and never sent. The signature is not verified.",
+    fields: [area("token", "JWT", "")],
+    help: [
+      "exp is when the token stops being valid, iat when it was issued, nbf the earliest time it is valid.",
+      "All three are seconds since 1 January 1970 UTC.",
+      "Servers should allow a small clock skew, often 30 to 60 seconds.",
+      "A token with no exp never expires, which is risky if it leaks.",
+    ],
+    build: jwtExpiryBuild,
+  },
+  "uuid-validator": {
+    outputLabel: "Results",
+    fields: [
+      area(
+        "uuids",
+        "UUIDs, one per line",
+        "550e8400-e29b-41d4-a716-446655440000\n{123E4567-E89B-12D3-A456-426614174000}\nnot-a-uuid\n00000000-0000-0000-0000-000000000000"
+      ),
+    ],
+    build: uuidValidateBuild,
+  },
+  "csp-hash-generator": {
+    outputLabel: "CSP hash",
+    fields: [
+      pick("algo", "Algorithm", "SHA-256", [
+        ["SHA-256", "SHA-256"],
+        ["SHA-384", "SHA-384"],
+        ["SHA-512", "SHA-512"],
+      ]),
+      pick("kind", "Content is", "script", [
+        ["script", "Inline script"],
+        ["style", "Inline style"],
+      ]),
+      area("content", "Content between the tags", "console.log('hello');"),
+    ],
+    help: [
+      "A hash lets one specific inline script run without allowing every inline script.",
+      "Include the hash in script-src or style-src next to 'self'.",
+      "Spaces and line breaks count: copy the text exactly as it appears in the page.",
+      "Prefer external files or nonces when the content changes often.",
+    ],
+    build: cspHashBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",

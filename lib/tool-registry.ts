@@ -139,6 +139,10 @@ import {
   Paintbrush,
   ShieldPlus,
   Waypoints,
+  BadgeCheck,
+  Hourglass,
+  ShieldQuestion,
+  Ticket,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -157,6 +161,7 @@ export type ToolCategory =
   | "server-planning"
   | "email"
   | "http"
+  | "security"
 
 export type ProjectItemType =
   | "subnet"
@@ -320,6 +325,12 @@ export const categories: CategoryDefinition[] = [
     label: "HTTP & Headers",
     icon: Waypoints,
     description: "Status codes, MIME types and response header generators",
+  },
+  {
+    id: "security",
+    label: "Security & Crypto",
+    icon: ShieldCheck,
+    description: "Random secrets, signatures, tokens and validators that run in your browser",
   },
 ]
 
@@ -2684,6 +2695,106 @@ export const tools: ToolDefinition[] = [
       "permissions-policy",
       "hardening",
     ],
+  },
+  // === security-tools ===
+  {
+    slug: "passphrase-generator",
+    label: "Passphrase Generator",
+    title: "Passphrase Generator",
+    description:
+      "Generate memorable random passphrases from a word list using your browser's secure random generator",
+    icon: KeyRound,
+    category: "security",
+    features: ["8 bits per word", "Separator choice", "Entropy shown"],
+    keywords: ["passphrase", "password", "diceware", "random words", "generator"],
+  },
+  {
+    slug: "api-key-generator",
+    label: "API Key Generator",
+    title: "API Key Generator",
+    description:
+      "Generate random API keys with an optional readable prefix such as sk_live and a chosen length and alphabet",
+    icon: Key,
+    category: "security",
+    features: ["Optional prefix", "Three alphabets", "Bits per key"],
+    keywords: ["api key", "key generator", "secret key", "prefix", "token"],
+  },
+  {
+    slug: "secret-generator",
+    label: "Secret Generator",
+    title: "Secret Key Generator",
+    description:
+      "Generate random secret keys in hex or base64 for sessions, signing and encryption with the equivalent openssl command",
+    icon: Lock,
+    category: "security",
+    features: ["Hex and base64", "8 to 128 bytes", "OpenSSL equivalent"],
+    keywords: ["secret key", "random bytes", "hex", "base64", "session secret"],
+  },
+  {
+    slug: "token-generator",
+    label: "Random Token Generator",
+    title: "Random Token Generator",
+    description:
+      "Generate random tokens in hex, letters and numbers or a no look-alike set, with optional grouping",
+    icon: Ticket,
+    category: "security",
+    features: ["Four character sets", "Grouped output", "Bits per token"],
+    keywords: ["token", "random token", "invite code", "reset token", "generator"],
+  },
+  {
+    slug: "hmac-generator",
+    label: "HMAC Generator",
+    title: "HMAC Generator",
+    description:
+      "Calculate an HMAC of a message with a secret key using SHA-1, SHA-256, SHA-384 or SHA-512 in your browser",
+    icon: Fingerprint,
+    category: "security",
+    features: ["Four hash functions", "Hex and base64", "Web Crypto"],
+    keywords: ["hmac", "sha256", "signature", "webhook", "message authentication"],
+  },
+  {
+    slug: "jwt-generator",
+    label: "JWT Generator",
+    title: "JWT Generator",
+    description:
+      "Create a signed JSON Web Token with an HS256, HS384 or HS512 secret, a custom payload and an expiry",
+    icon: BadgeCheck,
+    category: "security",
+    features: ["HMAC signing", "Expiry helper", "Test tokens"],
+    keywords: ["jwt", "json web token", "hs256", "token generator", "authentication"],
+  },
+  {
+    slug: "jwt-expiry-calculator",
+    label: "JWT Expiry Calculator",
+    title: "JWT Expiry Calculator",
+    description:
+      "Paste a JWT to see when it was issued, when it expires and whether it is still valid, with time remaining",
+    icon: Hourglass,
+    category: "security",
+    features: ["Expired or valid", "Readable dates", "Time left"],
+    keywords: ["jwt", "expiry", "exp claim", "token expiration", "decode"],
+  },
+  {
+    slug: "uuid-validator",
+    label: "UUID Validator",
+    title: "UUID Validator",
+    description:
+      "Check UUIDs for correct format and identify their version and variant, including nil and max UUIDs",
+    icon: ShieldQuestion,
+    category: "security",
+    features: ["Bulk check", "Version and variant", "Braces and no hyphens"],
+    keywords: ["uuid", "guid", "validate", "version", "variant"],
+  },
+  {
+    slug: "csp-hash-generator",
+    label: "CSP Hash Generator",
+    title: "CSP Hash Generator",
+    description:
+      "Create the SHA hash source for an inline script or style so a Content-Security-Policy can allow just that block",
+    icon: Hash,
+    category: "security",
+    features: ["SHA-256 384 512", "Script or style", "Policy line"],
+    keywords: ["csp", "hash", "inline script", "content security policy", "sha256"],
   },
 ]
 
