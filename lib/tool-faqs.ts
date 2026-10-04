@@ -9,6 +9,7 @@ import { currency_toolsFaqs } from "@/lib/faqs/currency-tools"
 import { dev_httpFaqs } from "@/lib/faqs/dev-http"
 import { devtoolsFaqs } from "@/lib/faqs/devtools"
 import { domain_toolsFaqs } from "@/lib/faqs/domain-tools"
+import { network_diagnosticsFaqs } from "@/lib/faqs/network-diagnostics"
 import { dns_depthFaqs } from "@/lib/faqs/dns-depth"
 import { emailFaqs } from "@/lib/faqs/email"
 import { eol_securityFaqs } from "@/lib/faqs/eol-security"
@@ -27,6 +28,7 @@ export const toolFaqs: Record<string, Faq[]> = {
   ...dev_httpFaqs,
   ...devtoolsFaqs,
   ...domain_toolsFaqs,
+  ...network_diagnosticsFaqs,
   ...dns_depthFaqs,
   ...emailFaqs,
   ...eol_securityFaqs,
