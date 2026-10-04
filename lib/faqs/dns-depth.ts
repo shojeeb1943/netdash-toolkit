@@ -1,60 +1,108 @@
 import type { Faq } from "@/lib/tool-faqs"
 
 export const dns_depthFaqs: Record<string, Faq[]> = {
-  "dnssec-checker": [
+  "dns-propagation-checker": [
     {
-      q: "What does the DNSSEC Authenticated Data flag indicate?",
-      a: "The Authenticated Data (AD) flag in DNS responses confirms that the recursive resolver cryptographically verified digital signatures across the DNSSEC trust chain from the root zone down to the requested records.",
+      q: "How does the DNS Propagation Checker test global DNS resolution?",
+      a: "It queries over 20 recursive DNS servers located in North America, Europe, Asia, South America, and Australia in real time to verify whether your updated A, AAAA, CNAME, MX, or TXT records have propagated worldwide.",
     },
     {
-      q: "Why do some domains have DS records but unvalidated status?",
-      a: "If DS records are published in the parent zone but DNSKEY records or RRSIG signatures are missing or mismatched at the authoritative server, validating resolvers detect a broken chain and return SERVFAIL.",
+      q: "Why does DNS propagation take time across the globe?",
+      a: "Recursive DNS resolvers cache records based on the Time-To-Live (TTL) value specified in your DNS zone. Resolvers will not fetch updated records until their local cached TTL expires.",
     },
     {
-      q: "Does this tool audit the entire cryptographic chain locally?",
-      a: "This checker queries public validating resolvers via DNS over HTTPS to inspect DS, DNSKEY, and Authenticated Data status rather than executing raw root-to-apex chain cryptography inside the browser.",
-    },
-  ],
-  "nameserver-delegation-checker": [
-    {
-      q: "What is the difference between registry NS and live NS records?",
-      a: "Registry nameservers are configured at the parent registrar and delegate authority, whereas live NS records are authoritative answers published inside the zone file itself at the apex.",
+      q: "How can I speed up DNS propagation before migrating servers?",
+      a: "Lower your DNS record TTL to 300 seconds (5 minutes) at least 24 to 48 hours prior to server migration. Once migration cutover is complete, you can restore standard TTLs (86400s).",
     },
     {
-      q: "What causes a nameserver delegation mismatch?",
-      a: "Delegation mismatches occur when nameservers are updated at the DNS hosting provider or registrar without synchronizing the corresponding NS records across both systems, or during active DNS migrations.",
+      q: "Are my DNS check queries stored or published publicly?",
+      a: "No. Propagation checks query public DNS servers in real time. No search queries, IP mappings, or domain names are recorded.",
     },
     {
-      q: "What is a lame delegation in DNS?",
-      a: "A lame delegation happens when a parent registry nameserver points to a server that is unreachable, does not answer, or is not configured to provide authoritative answers for that specific domain zone.",
+      q: "What does it mean if some locations return old IP addresses while others return new ones?",
+      a: "This indicates normal active propagation in progress. Resolvers with expired cache timers have pulled the new IP, while resolvers with active cache counters will update once their TTL expires.",
+    },
+    {
+      q: "What related tool inspects complete authoritative DNS zone records?",
+      a: "Use the DNS Lookup tool to perform detailed queries across all record types on authoritative nameservers.",
     },
   ],
-  "subdomain-finder": [
+  "dns-lookup": [
     {
-      q: "How does this tool discover subdomains without brute force?",
-      a: "It queries Certificate Transparency (CT) logs, which are public append-only ledgers of all SSL/TLS certificates issued by Certificate Authorities for the target domain and its subdomains.",
+      q: "What record types can I query with the DNS Lookup tool?",
+      a: "You can query all standard DNS record types including A (IPv4), AAAA (IPv6), CNAME (canonical name), MX (mail exchange), TXT (text & SPF), NS (nameservers), SOA (authority), SRV (services), and CAA (certificate authority).",
     },
     {
-      q: "Are wildcard certificates included in the subdomain results?",
-      a: "Wildcard certificates (such as *.example.com) are cataloged by CT logs; this tool strips wildcard prefixes and extracts unique known hostnames into a clean, deduplicated list.",
+      q: "What is the difference between authoritative and recursive DNS lookups?",
+      a: "Authoritative lookups query the master nameservers directly for ground-truth zone data. Recursive lookups query public resolvers (e.g. Google 8.8.8.8, Cloudflare 1.1.1.1) to view cached public responses.",
     },
     {
-      q: "Why might some active subdomains not appear in CT logs?",
-      a: "A subdomain will not appear in Certificate Transparency logs if it has never had a dedicated public SSL certificate issued, or if it only uses a generic wildcard certificate without individual host issuances.",
+      q: "How do CNAME records function in DNS routing?",
+      a: "A CNAME (Canonical Name) record aliases one domain name to another canonical hostname. Resolvers automatically follow CNAME chains until an A or AAAA address record is reached.",
+    },
+    {
+      q: "Is my DNS lookup query logged or tracked by LicenBase?",
+      a: "No. All DNS lookups execute in real time. We do not store, archive, or analyze any queried domain names or IP records.",
+    },
+    {
+      q: "What related tool checks Reverse DNS (IP to hostname) mapping?",
+      a: "Use the Reverse DNS Lookup tool or PTR Lookup tool to verify Reverse DNS mappings for your server IP addresses.",
+    },
+    {
+      q: "Why do some TXT records appear split into multiple quoted strings?",
+      a: "RFC 4408 limits individual TXT string segments to 255 characters. Longer records (such as 2048-bit DKIM public keys) are split into concatenated 255-byte strings that resolvers combine seamlessly.",
     },
   ],
-  "dns-resolver-comparison": [
+  "reverse-dns-lookup": [
     {
-      q: "Why compare Google DNS and Cloudflare DNS side by side?",
-      a: "Comparing major public resolvers helps detect DNS propagation delays, regional caching variance, geo-DNS routing splits, and recursive resolver configuration differences in real time.",
+      q: "What is Reverse DNS (rDNS) and why is it essential?",
+      a: "Reverse DNS resolves an IP address back to its associated domain hostname via PTR records. It is critical for mail server reputation, anti-spam validation, and network diagnostic logging.",
     },
     {
-      q: "Why do TTL values differ between Google and Cloudflare?",
-      a: "Time-to-live (TTL) counters tick down independently on each resolver based on when each server first received and cached the record from the authoritative nameserver.",
+      q: "What happens if a mail server lacks a matching Reverse DNS record?",
+      a: "Major email providers like Gmail, Yahoo, and Microsoft will reject incoming emails or flag them as spam if the sending IP lacks an rDNS PTR record that matches the mail server HELO banner.",
     },
     {
-      q: "Can this comparison tool test different DNS record types?",
-      a: "Yes, you can compare responses for A, AAAA, CNAME, MX, TXT, NS, SOA, and PTR records across both Google DNS and Cloudflare DNS simultaneously.",
+      q: "Where do I configure Reverse DNS for my VPS or dedicated server?",
+      a: "Reverse DNS must be configured in your hosting provider's datacenter management console, as the IP subnet owner controls the in-addr.arpa delegation zone.",
+    },
+    {
+      q: "Is any IP address I search logged on remote servers?",
+      a: "No. The lookup queries authoritative reverse DNS servers in real time. No IP queries or diagnostic logs are retained.",
+    },
+    {
+      q: "What is the difference between IPv4 and IPv6 reverse DNS zones?",
+      a: "IPv4 reverse records are placed in the in-addr.arpa zone using dotted-quad octets in reverse order (e.g. 1.2.0.192.in-addr.arpa). IPv6 records use the ip6.arpa zone with nibble-reversed hex digits.",
+    },
+    {
+      q: "What related tool checks mail server routing and MX records?",
+      a: "Use the MX Lookup tool to verify mail exchange server priority and IP routing configurations.",
+    },
+  ],
+  "mx-lookup": [
+    {
+      q: "What information does the MX Lookup tool provide?",
+      a: "It retrieves all Mail Exchange (MX) records for a domain, displaying the mail server hostnames, priority numbers, associated IPv4/IPv6 addresses, and reverse DNS validation status.",
+    },
+    {
+      q: "How does MX record priority determine email routing?",
+      a: "Sending mail servers deliver messages to the MX record with the lowest numerical priority first (e.g. Priority 10). If the primary server is unreachable, mail queues failover to secondary servers (e.g. Priority 20).",
+    },
+    {
+      q: "Can an MX record point directly to an IP address?",
+      a: "No. RFC standards mandate that MX records must point to a canonical domain hostname (A/AAAA record) and cannot point directly to an IP address or a CNAME alias.",
+    },
+    {
+      q: "Are my searched email domains logged or tracked?",
+      a: "No. MX lookups query authoritative DNS nameservers in real time. No domain searches or mail server configurations are stored.",
+    },
+    {
+      q: "What related tools help verify email deliverability and security?",
+      a: "Use the SPF Record Generator, DKIM Record Generator, and DMARC Record Generator in the Email category to configure complete email security records.",
+    },
+    {
+      q: "What happens if a domain has no MX records configured?",
+      a: "If no MX records exist, sending mail servers will attempt fallback delivery directly to the domain's primary A record as defined in RFC 5321.",
     },
   ],
 }
