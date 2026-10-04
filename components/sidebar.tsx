@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { openCommandPalette } from "@/components/command-palette"
 import {
-  Network,
   ChevronLeft,
   ChevronDown,
   ChevronRight,
@@ -143,9 +142,8 @@ export function Sidebar({ isOpen, onToggle, variant = "desktop" }: SidebarProps)
               className="focus-visible:ring-ring focus-visible:ring-offset-sidebar flex items-center gap-2 rounded-md px-1 py-1 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
               onClick={handleNavigate}
             >
-              <div className="bg-primary flex size-8 items-center justify-center rounded-lg">
-                <Network className="text-primary-foreground size-5" aria-hidden="true" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/assets/img/favicon-192x192.png" alt="" className="size-8 rounded-lg" />
               <span className="text-sidebar-foreground leading-none font-semibold">LicenBase</span>
             </Link>
           )}
