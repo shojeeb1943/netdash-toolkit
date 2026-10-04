@@ -1,130 +1,290 @@
 import type { Faq } from "@/lib/tool-faqs"
 
 export const security_toolsFaqs: Record<string, Faq[]> = {
-  "passphrase-generator": [
-    {
-      q: "Why are passphrases good?",
-      a: "A few random words are easy to remember and hard to guess. Six random words from this list give about 48 bits, and each extra word adds 8 more.",
-    },
-    {
-      q: "How many words do I need?",
-      a: "Use at least six for ordinary accounts and eight or more for a password manager or disk encryption. The result tells you the bits so you can judge.",
-    },
-    {
-      q: "Is the word list large?",
-      a: "It has 256 short words, which keeps the maths simple: every word is worth exactly 8 bits. Larger lists give more bits per word, so add a word or two to compensate.",
-    },
-  ],
   "api-key-generator": [
     {
-      q: "Why add a prefix to an API key?",
-      a: "A prefix such as sk_live or pk_test shows what a key is for, and lets secret scanners spot leaked keys in code and logs.",
+      q: "How does the API Key Generator create secure authentication keys?",
+      a: "It utilizes the browser's cryptographic pseudo-random number generator (window.crypto.getRandomValues) to generate high-entropy strings across customizable character sets, byte lengths, and standard key prefix conventions (e.g. 'sk_live_', 'pk_test_').",
     },
     {
-      q: "How long should an API key be?",
-      a: "At least 32 random characters from letters and numbers gives about 190 bits, far more than can be guessed. Longer keys cost nothing.",
+      q: "Why are key prefixes recommended for production API keys?",
+      a: "Standardized prefixes (like 'sk_live_' for secret keys or 'pk_test_' for publishable keys) allow secret scanning tools (GitHub, GitGuardian) to immediately detect leaked tokens in code repositories and help developers identify key scopes at a glance.",
     },
     {
-      q: "How should I store API keys?",
-      a: "Store only a hash of each key in your database and show the real key to its owner once, as you would a password.",
-    },
-  ],
-  "secret-generator": [
-    {
-      q: "How many bytes should a secret be?",
-      a: "32 bytes (256 bits) is the common choice for session secrets, signing keys and encryption keys. Use 16 bytes only for short lived values.",
+      q: "What is the recommended entropy length for production API keys?",
+      a: "Production API keys should provide at least 256 bits of cryptographic entropy (typically 32 to 64 alphanumeric characters), making brute-force guessing attacks mathematically impossible.",
     },
     {
-      q: "Which encoding should I pick?",
-      a: "Hex is simple and safe in any file. Base64 is shorter for the same strength. Base64 URL safe avoids plus and slash characters in URLs and cookies.",
+      q: "Are generated API keys transmitted over the network or saved in a database?",
+      a: "No. All key generation runs 100% locally in your browser memory using Web Crypto APIs. Generated keys never touch any server or telemetry endpoint.",
     },
     {
-      q: "Is it safe to generate secrets in a browser?",
-      a: "The values come from your browser's cryptographic random number generator and are not sent anywhere. For production keys many teams prefer to generate them on the server that will use them.",
+      q: "What related tool helps calculate message authentication signatures using API secrets?",
+      a: "Use the HMAC Generator to create SHA-256 and SHA-512 webhook verification signatures using your generated secret keys.",
+    },
+    {
+      q: "How should secret API keys be stored on a web server?",
+      a: "Store secret keys in protected environment variables (.env files outside document roots) or dedicated secret vaults (HashiCorp Vault, AWS Secrets Manager), never hardcoded inside public frontend code.",
     },
   ],
   "token-generator": [
     {
-      q: "What are random tokens used for?",
-      a: "Password reset links, invitation codes, email confirmation and session identifiers. They must be unpredictable, so they come from secure randomness.",
+      q: "What types of security tokens can this tool generate?",
+      a: "It generates secure random tokens across multiple formats: Hexadecimal (0-9, a-f), Base64, Base64URL, Alphanumeric, and custom character sets for session cookies, CSRF tokens, email verification codes, and password reset nonces.",
     },
     {
-      q: "What does grouping do?",
-      a: "It inserts a hyphen every few characters so a code that a person must read or type, such as XXXX-XXXX-XXXX, is easier to handle.",
+      q: "Why is Base64URL encoding preferred for web and URL parameters?",
+      a: "Base64URL replaces '+' and '/' with '-' and '_' and omits trailing '=' padding characters, ensuring tokens can be passed inside URL query strings, cookies, and HTTP headers without URL percent-encoding issues.",
     },
     {
-      q: "How long should a reset token be?",
-      a: "At least 32 characters of letters and numbers. Give it a short life, such as an hour, and make it single use.",
+      q: "How does crypto.getRandomValues ensure cryptographic security?",
+      a: "Unlike standard Math.random() which produces predictable pseudo-random sequences, crypto.getRandomValues taps into the operating system's kernel entropy pool (hardware interrupts, thermal noise), ensuring cryptographic unpredictability.",
+    },
+    {
+      q: "Are my generated session tokens logged or stored externally?",
+      a: "No. All tokens are generated in volatile browser memory. No tokens or configuration parameters are saved or transmitted.",
+    },
+    {
+      q: "What related tool helps build formatted cryptographic JSON Web Tokens?",
+      a: "Use the JWT Generator to create signed JWT payloads with expiration claims, audience tags, and custom JSON properties.",
+    },
+    {
+      q: "What is the recommended token length for password reset links?",
+      a: "Password reset tokens should be at least 32 bytes (256 bits) of random entropy and paired with a short time-to-live (e.g. 15 to 30 minutes) and single-use database invalidation.",
+    },
+  ],
+  "secret-generator": [
+    {
+      q: "What is the purpose of the Secret Generator?",
+      a: "This tool generates high-entropy cryptographic master secrets, encryption keys, cookie signing salts, and database encryption passphrases using hardware-backed Web Crypto entropy.",
+    },
+    {
+      q: "What is the difference between an API key and an encryption secret?",
+      a: "An API key identifies and authenticates a client application. An encryption secret (such as an AES-256 key or HMAC signing salt) is a private cryptographic key used to encrypt data payloads or sign digital signatures.",
+    },
+    {
+      q: "Why should different environments use separate cryptographic secrets?",
+      a: "Using distinct secrets for development, staging, and production ensures that a compromised test environment or staging database dump cannot be used to decrypt live production user data.",
+    },
+    {
+      q: "Does this generator send generated secrets to any remote server?",
+      a: "No. All generation executes client-side inside your browser session. None of your generated secrets, salts, or passphrases ever leave your computer.",
+    },
+    {
+      q: "What related tool helps generate human-memorable multi-word passphrases?",
+      a: "Use the Passphrase Generator to generate memorable multi-word passphrases using Diceware wordlists for master vault passwords.",
+    },
+    {
+      q: "How do secret salts protect password hashes against rainbow table attacks?",
+      a: "Adding a unique random salt to each password before hashing (e.g. via bcrypt or argon2) guarantees that identical passwords produce completely different hash outputs, defeating precomputed rainbow tables.",
+    },
+  ],
+  "passphrase-generator": [
+    {
+      q: "How does the Passphrase Generator generate secure, memorable passphrases?",
+      a: "It applies the Diceware methodology, selecting random words from curated dictionaries (EFF long wordlist) using cryptographic randomness, and allows adding custom separators, capitalizations, and numbers.",
+    },
+    {
+      q: "Why are multi-word passphrases more secure than short complex passwords?",
+      a: "A 5-word Diceware passphrase (e.g. 'correct-horse-battery-staple') provides ~65 bits of entropy, which is exponentially harder to brute-force than an 8-character complex password while being significantly easier for humans to remember.",
+    },
+    {
+      q: "How many words are recommended for a master password or root passphrase?",
+      a: "Using 5 to 6 random words provides 65 to 78 bits of entropy, which is recommended for master password manager vaults, SSH root access, and full-disk encryption passphrases.",
+    },
+    {
+      q: "Is my generated passphrase recorded or sent over the network?",
+      a: "No. The wordlist matching and random selections execute 100% locally in your web browser. No passphrases or user inputs are logged.",
+    },
+    {
+      q: "What related tool checks whether a password has previously leaked in a data breach?",
+      a: "Use the Pwned Password Checker to securely verify whether a password has appeared in historical public credential breaches using k-anonymity.",
+    },
+    {
+      q: "Can automated dictionary attacks crack Diceware passphrases?",
+      a: "No. Because each word is drawn independently and uniformly from a dictionary of 7,776 words, brute-forcing a 6-word passphrase requires testing over 221 trillion combinations.",
     },
   ],
   "hmac-generator": [
     {
-      q: "What is an HMAC?",
-      a: "A signature made from a message and a secret key. Only someone with the key can produce or check it, so it proves the message is genuine and unchanged.",
+      q: "What is an HMAC and how does this tool compute message signatures?",
+      a: "An HMAC (Hash-based Message Authentication Code) combines a cryptographic hash function (SHA-256, SHA-512, SHA-1, MD5) with a secret key to verify both data integrity and authenticity of a message or webhook payload.",
     },
     {
-      q: "Where are HMACs used?",
-      a: "Webhook signatures from payment and code hosting services, signed cookies and URLs, and API request signing.",
+      q: "Why are HMAC signatures standard for webhook verification (Stripe, GitHub, Shopify)?",
+      a: "Webhooks transmit an HMAC signature in the HTTP headers (e.g. 'X-Hub-Signature-256'). The receiver recomputes the HMAC using the shared secret to verify that the payload was sent by the authentic service and was not modified in transit.",
     },
     {
-      q: "How is it different from a plain hash?",
-      a: "A hash can be computed by anyone. An HMAC needs the secret key, so an attacker cannot forge it by hashing a changed message.",
+      q: "What is the difference between a standard hash (SHA-256) and an HMAC?",
+      a: "A standard hash depends solely on the message content. An HMAC incorporates a private secret key, ensuring that attackers cannot generate valid signatures even if they know the hash algorithm.",
+    },
+    {
+      q: "Are my secret keys or message payloads uploaded to LicenBase?",
+      a: "No. The HMAC calculations are executed entirely client-side in your web browser using the Web Cryptography API (crypto.subtle). Your secrets and payloads remain 100% private.",
+    },
+    {
+      q: "What related tool helps generate secure random keys for HMAC secrets?",
+      a: "Use the Secret Generator or API Key Generator to create 256-bit cryptographic keys for your HMAC webhook integrations.",
+    },
+    {
+      q: "How can I prevent timing attacks when comparing HMAC signatures in code?",
+      a: "Always compare HMAC signatures using a constant-time comparison function (e.g. crypto.timingSafeEqual in Node.js or hash_equals() in PHP) rather than standard equality operators ('==').",
     },
   ],
   "jwt-generator": [
     {
-      q: "What is in a JWT?",
-      a: "Three parts joined by dots: a header naming the algorithm, a payload of claims and a signature. The first two are only encoded, not encrypted.",
+      q: "What is a JSON Web Token (JWT) and what components does this generator build?",
+      a: "A JWT is a compact URL-safe format for transmitting security claims. This tool constructs the three standard base64url-encoded parts: Header (algorithm & token type), Payload (claims: sub, iss, aud, exp, iat, custom data), and digital Signature.",
     },
     {
-      q: "Is this safe to use with a real secret?",
-      a: "The secret is used only in your browser and never sent, but it is best to test with a throwaway secret. Never paste a production signing key into any website.",
+      q: "Which signing algorithms are supported for JWT creation?",
+      a: "The generator supports symmetric HMAC algorithms (HS256, HS384, HS512) using shared secrets, as well as unsigned tokens (alg: none) for local debugging and decoding.",
     },
     {
-      q: "What are exp and iat?",
-      a: "exp is when the token expires and iat when it was issued, both in seconds since 1970. The tool can add them for you.",
+      q: "What standard claims should always be included in authentication JWTs?",
+      a: "Always include 'exp' (expiration timestamp), 'iat' (issued-at timestamp), and 'sub' (subject/user ID) to ensure tokens expire properly and cannot be replayed indefinitely.",
+    },
+    {
+      q: "Are my JWT payload claims or private secrets stored remotely?",
+      a: "No. Token assembly and cryptographic signing execute entirely inside your browser using JavaScript and Web Crypto. No payload data leaves your device.",
+    },
+    {
+      q: "What related tool helps calculate human-readable JWT expiration countdowns?",
+      a: "Use the JWT Expiry Calculator to decode token timestamps, inspect expiration windows, and verify whether a token is currently active.",
+    },
+    {
+      q: "Why should sensitive data like passwords never be stored inside JWT payloads?",
+      a: "JWT payloads are base64url-encoded, not encrypted. Anyone who intercepts the token can decode and view all payload claims in plain text unless encrypted using JWE (JSON Web Encryption).",
     },
   ],
   "jwt-expiry-calculator": [
     {
-      q: "Does this verify the token?",
-      a: "No. It reads the time claims only. A forged token can have a valid looking expiry, so the signature must be checked by your server with the key.",
+      q: "What does the JWT Expiry Calculator analyze in a token?",
+      a: "It decodes the raw JWT, extracts the 'exp' (expiration), 'iat' (issued at), and 'nbf' (not before) Unix timestamps, and calculates exact remaining validity time, elapsed duration, and expiration status in your local timezone and UTC.",
     },
     {
-      q: "Is my token uploaded?",
-      a: "No. It is decoded in your browser. Even so, avoid pasting live production tokens: treat them like passwords.",
+      q: "What happens when a JWT passes its 'exp' timestamp?",
+      a: "Authentication middleware will reject the token with a 'TokenExpiredError' (HTTP 401 Unauthorized), requiring the client application to refresh the token using an OAuth refresh token or re-authenticate.",
     },
     {
-      q: "What does no expiry set mean?",
-      a: "The token has no exp claim and never expires, so if it leaks it works forever. Add a short expiry to tokens you issue.",
-    },
-  ],
-  "uuid-validator": [
-    {
-      q: "What makes a UUID valid?",
-      a: "Thirty-two hexadecimal digits, normally written 8-4-4-4-12. The tool also accepts braces and values without hyphens.",
+      q: "What is clock skew allowance in JWT validation?",
+      a: "Clock skew allows a small grace window (typically 30 to 60 seconds) during validation to account for slight timestamp drift between different application servers.",
     },
     {
-      q: "How do I know a UUID's version?",
-      a: "The first digit of the third group is the version. A 4 means random, a 7 means time ordered, and 1 means time and MAC address based.",
+      q: "Is my pasted JWT token sent to external servers for decoding?",
+      a: "No. The decoding and timestamp calculations execute 100% client-side in your web browser. No token strings or payload claims are shared.",
     },
     {
-      q: "What are nil and max UUIDs?",
-      a: "The nil UUID is all zeros and the max UUID is all f digits. Both are valid special values that are normally used as placeholders.",
+      q: "What related tool allows creating newly signed JWT tokens?",
+      a: "Use the JWT Generator to create custom signed JWT tokens with specified expiration windows and user claims.",
+    },
+    {
+      q: "What does the 'nbf' (Not Before) claim represent in a JWT?",
+      a: "The 'nbf' claim defines the earliest timestamp at which the token becomes valid. Any attempt to use the token before this timestamp will be rejected.",
     },
   ],
   "csp-hash-generator": [
     {
-      q: "When do I need a CSP hash?",
-      a: "When a page has an inline script or style you cannot move to a file. The hash allows that exact content without allowing every inline script.",
+      q: "What is a Content Security Policy (CSP) hash and how is it used?",
+      a: "A CSP hash is a cryptographic digest (SHA-256, SHA-384, or SHA-512) of an inline JavaScript snippet or CSS block. Placing the hash in your 'script-src' header allows that specific inline script to execute without enabling unsafe-inline.",
     },
     {
-      q: "What exactly gets hashed?",
-      a: "Every character between the opening and closing tags, including spaces and line breaks. Copy it precisely or the browser will block the block.",
+      q: "Why is using CSP hashes more secure than 'unsafe-inline'?",
+      a: "Using 'unsafe-inline' allows any injected XSS script to execute freely. CSP hashes allow only exact pre-approved inline code blocks to run, blocking all unauthorized injected scripts.",
     },
     {
-      q: "Should I use a hash or a nonce?",
-      a: "Hashes suit static content that never changes. A nonce, a fresh random value for each response, suits pages where the content varies.",
+      q: "How does exact whitespace matching affect CSP hash validation?",
+      a: "CSP hashes are calculated byte-for-byte on the script content between the <script> tags. Modifying even a single space, newline, or tab will change the hash and cause the browser to block script execution.",
+    },
+    {
+      q: "Are my JavaScript code snippets or stylesheet styles uploaded anywhere?",
+      a: "No. The SHA hashing algorithms execute purely client-side in your browser using Web Crypto APIs. Your code snippets remain completely private.",
+    },
+    {
+      q: "What related tool helps build complete Nginx and Apache security headers?",
+      a: "Use the Nginx Config Generator and Apache VirtualHost Generator in the Linux category to configure complete Content-Security-Policy headers.",
+    },
+    {
+      q: "What is the alternative to CSP hashes for dynamic inline scripts?",
+      a: "CSP Nonces ('nonce-randomvalue') provide an alternative by generating a unique random cryptographic token per HTTP request that must match on both the header and script tag.",
+    },
+  ],
+  "uuid-validator": [
+    {
+      q: "What does the UUID Validator verify on a UUID string?",
+      a: "It verifies standard 36-character 8-4-4-4-12 hexadecimal formatting, detects the UUID version (Version 1 time-based, Version 4 random, Version 5 SHA-1, Version 7 Unix epoch), and extracts timestamp metadata where applicable.",
+    },
+    {
+      q: "What makes UUID Version 4 the most common format?",
+      a: "UUID v4 generates 122 bits of pure random entropy (e.g. 'f47ac10b-58cc-4372-a567-0e02b2c3d479'), providing astronomical collision resistance without revealing system MAC addresses or timestamps.",
+    },
+    {
+      q: "What are the advantages of UUID Version 7 in database indexing?",
+      a: "UUID v7 incorporates a millisecond Unix timestamp in the leading 48 bits, creating time-ordered sequential UUIDs that eliminate B-Tree fragmentation in MySQL and PostgreSQL databases.",
+    },
+    {
+      q: "Is my UUID string transmitted or stored in a database?",
+      a: "No. All validation and metadata extraction execute 100% locally in your web browser. No UUIDs or user inputs are logged.",
+    },
+    {
+      q: "What related tool generates batches of fresh cryptographic UUIDs?",
+      a: "Use the UUID Bulk Generator to create hundreds of random UUID v4 or sequential UUID v7 identifiers.",
+    },
+    {
+      q: "What is a Nil UUID in software specifications?",
+      a: "The Nil UUID is a special-case identifier consisting of all zeros ('00000000-0000-0000-0000-000000000000') used to represent an empty, unset, or default identifier.",
+    },
+  ],
+  "cve-search": [
+    {
+      q: "What database does the CVE Search tool query?",
+      a: "It queries official National Vulnerability Database (NVD) and MITRE Common Vulnerabilities and Exposures (CVE) records to retrieve vulnerability descriptions, CVSS severity scores, affected software versions, and official patch advisories.",
+    },
+    {
+      q: "What is a CVSS score and how do I interpret the severity rating?",
+      a: "The Common Vulnerability Scoring System (CVSS v3.1) rates vulnerabilities from 0.0 to 10.0: Low (0.1-3.9), Medium (4.0-6.9), High (7.0-8.9), and Critical (9.0-10.0). Critical vulnerabilities typically allow remote code execution without authentication.",
+    },
+    {
+      q: "Can I search by software package name as well as CVE identifier?",
+      a: "Yes. You can enter specific CVE IDs (e.g. 'CVE-2024-6387') or search by software package and version (e.g. 'OpenSSH 9.6p1' or 'cPanel') to identify known security vulnerabilities.",
+    },
+    {
+      q: "Is my search query logged or shared with external security agencies?",
+      a: "No. Search queries query public vulnerability APIs in real time for diagnostic evaluation only. We do not store or track user searches.",
+    },
+    {
+      q: "What security software automatically patches known CVEs on cPanel servers?",
+      a: "Imunify360 provides proactive defense and automated kernel/PHP patching that neutralizes active CVE exploits before official software vendor patches are applied.",
+    },
+    {
+      q: "What is the difference between a zero-day vulnerability and a published CVE?",
+      a: "A zero-day vulnerability is an unpatched flaw actively exploited in the wild before public disclosure. A published CVE is a formally cataloged vulnerability with an assigned identifier and vendor remediation steps.",
+    },
+  ],
+  "pwned-password-checker": [
+    {
+      q: "How does the Pwned Password Checker verify breached credentials securely?",
+      a: "It uses k-anonymity mathematical models: it computes the SHA-1 hash of the password locally in your browser, sends only the first 5 characters of the hash to the HaveIBeenPwned API, and matches the remaining hash suffix locally.",
+    },
+    {
+      q: "Does my real password ever leave my web browser?",
+      a: "No, never. Your plaintext password is never sent over the network. The remote API only receives a 5-character hash prefix shared by thousands of unrelated passwords, ensuring complete mathematical privacy.",
+    },
+    {
+      q: "What should I do if my password appears in the breach database?",
+      a: "Immediately change that password on all websites where it was used, enable two-factor authentication (2FA), and generate a unique high-entropy passphrase using a password manager.",
+    },
+    {
+      q: "Is my password search recorded or added to any list?",
+      a: "No. All hashing occurs in local memory and the search results are discarded immediately. No queries or hashes are saved.",
+    },
+    {
+      q: "What related tool helps create unbreachable master passwords?",
+      a: "Use the Passphrase Generator to create long, memorable Diceware passphrases and the Secret Generator for high-entropy alphanumeric strings.",
+    },
+    {
+      q: "Why is credential stuffing dangerous for users who reuse passwords?",
+      a: "When a single website suffers a database breach, automated cybercrime bots test the leaked email and password combinations across thousands of other services (cPanel, banking, email, WHMCS).",
     },
   ],
 }
