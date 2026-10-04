@@ -199,3 +199,38 @@ describe("text transforms", () => {
     expect(jsonToCsv("[1,2]", ",")).toHaveProperty("error")
   })
 })
+
+describe("batch 3 domain helpers", () => {
+  it("length checker flags dns limits, hyphens and digits", async () => {
+    expect(await text("domain-length-checker", { domain: "example.com" })).toContain(
+      "Name part:   7 characters"
+    )
+    const out = await text("domain-length-checker", { domain: "my-cool-site2.com" })
+    expect(out).toContain("hyphen")
+    expect(out).toContain("Digits")
+    expect(await text("domain-length-checker", { domain: `${"a".repeat(64)}.com` })).toContain("63")
+    expect(await run("domain-length-checker", { domain: "nodots" })).toHaveProperty("error")
+  })
+
+  it("combinations multiply the lists and respect the joiner", async () => {
+    const out = await text("domain-combinations-generator", {
+      a: "cloud\nfast",
+      b: "host",
+      c: "",
+      joiner: "-",
+      tlds: ".com",
+    })
+    expect(out).toContain("2 combinations")
+    expect(out).toContain("cloud-host.com")
+    expect(await run("domain-combinations-generator", { joiner: "__" })).toHaveProperty("error")
+    expect(await run("domain-combinations-generator", { a: "", b: "x" })).toHaveProperty("error")
+  })
+
+  it("extension explorer filters by type and text", async () => {
+    expect(await text("domain-extension-explorer", { query: "", kind: "country" })).toContain(".io")
+    expect(await text("domain-extension-explorer", { query: "google", kind: "all" })).toContain(
+      ".dev"
+    )
+    expect(await run("domain-extension-explorer", { query: "zzzz" })).toHaveProperty("error")
+  })
+})

@@ -1148,6 +1148,81 @@ export const calcDefs: Record<string, CalcDef> = {
       ]
     },
   },
+  "plesk-license-calculator": licenseDef("Plesk", "server"),
+  "imunify360-license-calculator": licenseDef("Imunify360", "server"),
+  "sitepad-license-calculator": licenseDef("SitePad", "server"),
+  "whmreseller-license-calculator": licenseDef("WHMReseller", "server"),
+  "domain-renewal-cost-calculator": {
+    note: "Registries and registrars raise renewal prices over time. Enter a yearly increase to see the effect.",
+    fields: [
+      f("renew", "Renewal price this year", 15, "USD", 0.01),
+      f("increase", "Expected yearly price increase", 5, "%", 0.1),
+      f("years", "Years to hold", 10, "years"),
+      f("domains", "Number of domains", 1, "domains"),
+    ],
+    compute: (v) => {
+      if (v.years < 1) return "Hold the domain for at least 1 year."
+      let total = 0
+      let price = v.renew
+      for (let y = 0; y < v.years; y++) {
+        total += price
+        price *= 1 + v.increase / 100
+      }
+      return [
+        money("Total renewals per domain", total, true),
+        money("Total for all domains", total * v.domains, true),
+        money("Price in the final year", price / (1 + v.increase / 100)),
+        money("Average per year", total / v.years),
+      ]
+    },
+  },
+  "domain-profit-calculator": {
+    fields: [
+      f("buy", "Purchase price", 12, "USD", 0.01),
+      f("sell", "Sale price", 450, "USD", 0.01),
+      f("renew", "Renewal per year", 15, "USD", 0.01),
+      f("years", "Years held before selling", 3, "years", 0.5),
+      f("fee", "Marketplace or broker fee", 15, "% of sale", 0.1),
+    ],
+    compute: (v) => {
+      const holding = v.renew * Math.max(0, v.years - 1)
+      const cost = v.buy + holding
+      const net = v.sell * (1 - v.fee / 100)
+      const profit = net - cost
+      return [
+        money("Total cost to hold", cost),
+        money("Proceeds after fees", net),
+        money("Profit", profit, true),
+        cost > 0
+          ? pct("Return on cost", (profit / cost) * 100, true)
+          : text("Return on cost", "n/a"),
+      ]
+    },
+  },
+  "domain-portfolio-value-calculator": {
+    note: "A planning model, not an appraisal. Real resale values and sell-through rates are uncertain: use cautious numbers.",
+    fields: [
+      f("count", "Domains in the portfolio", 50, "domains"),
+      f("renew", "Average renewal cost", 14, "USD / year", 0.01),
+      f("price", "Average sale price when sold", 300, "USD", 0.01),
+      f("sell", "Share of the portfolio sold each year", 2, "%", 0.1),
+      f("fee", "Marketplace or broker fee", 15, "% of sale", 0.1),
+    ],
+    compute: (v) => {
+      const holding = v.count * v.renew
+      const sold = v.count * (v.sell / 100)
+      const revenue = sold * v.price * (1 - v.fee / 100)
+      return [
+        money("Holding cost per year", holding),
+        num("Expected sales per year", sold),
+        money("Expected revenue per year", revenue),
+        money("Expected net per year", revenue - holding, true),
+        revenue > 0
+          ? num("Years to sell the portfolio at this rate", v.sell > 0 ? 100 / v.sell : Infinity)
+          : text("Years to sell the portfolio at this rate", "n/a"),
+      ]
+    },
+  },
   "domain-cost-calculator": {
     note: "Registration is often discounted for the first year; the renewal price is what you pay every year after.",
     fields: [

@@ -369,3 +369,46 @@ describe("server planning calculators", () => {
     ).toBe(1)
   })
 })
+
+describe("batch 3 calculators", () => {
+  it("licence calculators reuse the shared maths", () => {
+    expect(get("plesk-license-calculator", "Monthly software cost", { price: 12, units: 3 })).toBe(
+      36
+    )
+    expect(
+      get("sitepad-license-calculator", "Annual software cost", {
+        price: 10,
+        units: 1,
+        prepaid: 10,
+      })
+    ).toBe(108)
+  })
+
+  it("domain renewal compounds the yearly increase", () => {
+    const s = "domain-renewal-cost-calculator"
+    expect(
+      get(s, "Total renewals per domain", { renew: 10, increase: 0, years: 5, domains: 1 })
+    ).toBe(50)
+    expect(
+      get(s, "Total renewals per domain", { renew: 100, increase: 10, years: 2, domains: 1 })
+    ).toBeCloseTo(210, 5)
+    expect(typeof runCalc(s, { renew: 10, increase: 5, years: 0, domains: 1 })).toBe("string")
+  })
+
+  it("domain profit subtracts renewals after the first year and the fee", () => {
+    const s = "domain-profit-calculator"
+    // cost = 10 + 2 * 10 = 30 ; proceeds = 200 * 0.9 = 180 ; profit 150
+    expect(get(s, "Profit", { buy: 10, sell: 200, renew: 10, years: 3, fee: 10 })).toBe(150)
+  })
+
+  it("portfolio: holding cost and expected net", () => {
+    const s = "domain-portfolio-value-calculator"
+    expect(
+      get(s, "Holding cost per year", { count: 100, renew: 10, price: 500, sell: 2, fee: 20 })
+    ).toBe(1000)
+    // 2 sold * 500 * 0.8 = 800 revenue, net -200
+    expect(
+      get(s, "Expected net per year", { count: 100, renew: 10, price: 500, sell: 2, fee: 20 })
+    ).toBe(-200)
+  })
+})

@@ -794,6 +794,201 @@ async function sriBuild(v: GValues): Promise<GResult> {
   return `${integrity}\n\n${tag}`
 }
 
+// ---------- batch 3: domain helpers ----------
+
+function lengthBuild(v: GValues): GResult {
+  const raw = s(v, "domain")
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+  if (!raw) return err("Enter a domain name.")
+  const parts = raw.split(".")
+  if (parts.length < 2 || parts.some((p) => !p))
+    return err("Enter a name with an extension, such as example.com.")
+  const label = parts[0]
+  const ext = parts.slice(1).join(".")
+  const notes: string[] = []
+  if (parts.some((p) => p.length > 63))
+    notes.push("A label over 63 characters is not valid in DNS.")
+  if (raw.length > 253) notes.push("A full name over 253 characters is not valid in DNS.")
+  if (!/^[a-z0-9-]+$/.test(label))
+    notes.push("Letters, numbers and hyphens only: other characters need punycode.")
+  if (label.startsWith("-") || label.endsWith("-"))
+    notes.push("A label cannot start or end with a hyphen.")
+  if (label.includes("--") && label[2] !== "-")
+    notes.push("Double hyphens look spammy and are easy to mistype.")
+  if ((label.match(/-/g) ?? []).length > 1)
+    notes.push("More than one hyphen makes a name harder to say and remember.")
+  if (/\d/.test(label)) notes.push("Digits can be confused with words when spoken aloud.")
+  const verdict =
+    label.length <= 8
+      ? "Very short: easy to type and remember, hard to find available."
+      : label.length <= 15
+        ? "Good length for a brand."
+        : label.length <= 25
+          ? "Long: fine for a keyword domain, harder to type."
+          : "Very long: people will mistype it and it will be cut off in many places."
+  return [
+    `Name part:   ${label.length} characters  (${label})`,
+    `Extension:   .${ext}  (${ext.length + 1} characters)`,
+    `Full name:   ${raw.length} characters`,
+    "",
+    verdict,
+    ...(notes.length ? ["", ...notes.map((n) => `Note: ${n}`)] : []),
+  ].join("\n")
+}
+
+function combinationsBuild(v: GValues): GResult {
+  const split = (id: string) =>
+    Array.from(
+      new Set(
+        lines(s(v, id))
+          .map((w) => w.toLowerCase().replace(/[^a-z0-9]/g, ""))
+          .filter(Boolean)
+      )
+    )
+  const a = split("a")
+  const b = split("b")
+  const c = split("c")
+  if (!a.length || !b.length) return err("Enter at least one word in each of the first two lists.")
+  const joiner = s(v, "joiner")
+  if (joiner && !/^-?$/.test(joiner)) return err("The joiner can be blank or a single hyphen.")
+  const tlds = s(v, "tlds")
+    .split(/[,\s]+/)
+    .map((x) => x.replace(/^\./, "").toLowerCase())
+    .filter((x) => /^[a-z]{2,24}$/.test(x))
+  if (!tlds.length) return err("Enter at least one extension such as .com")
+  const third = c.length ? c : [""]
+  const names: string[] = []
+  for (const x of a)
+    for (const y of b) for (const z of third) names.push([x, y, z].filter(Boolean).join(joiner))
+  const valid = Array.from(new Set(names)).filter((n) => n.length <= 63)
+  const out = valid.flatMap((n) => tlds.map((t) => `${n}.${t}`))
+  if (!out.length) return err("Nothing to show.")
+  const shown = out.slice(0, 400)
+  return `${out.length} combinations${out.length > 400 ? " (showing 400)" : ""}\n\n${shown.join("\n")}`
+}
+
+export const TLD_DATA: { ext: string; kind: "classic" | "new" | "country"; about: string }[] = [
+  {
+    ext: "com",
+    kind: "classic",
+    about: "The default for businesses; the most recognised and the most taken.",
+  },
+  {
+    ext: "net",
+    kind: "classic",
+    about: "Originally for network providers; now a common second choice to .com.",
+  },
+  {
+    ext: "org",
+    kind: "classic",
+    about: "Associated with non-profits, communities and open source projects.",
+  },
+  {
+    ext: "info",
+    kind: "classic",
+    about: "General purpose, used for information sites and guides.",
+  },
+  {
+    ext: "biz",
+    kind: "classic",
+    about: "Intended for businesses; less trusted than .com by many users.",
+  },
+  {
+    ext: "io",
+    kind: "country",
+    about: "Country code of the British Indian Ocean Territory; popular with tech start-ups.",
+  },
+  {
+    ext: "co",
+    kind: "country",
+    about: "Country code of Colombia; used as a shorter alternative to .com.",
+  },
+  {
+    ext: "ai",
+    kind: "country",
+    about: "Country code of Anguilla; widely used by artificial intelligence projects.",
+  },
+  {
+    ext: "me",
+    kind: "country",
+    about: "Country code of Montenegro; used for personal sites and portfolios.",
+  },
+  {
+    ext: "tv",
+    kind: "country",
+    about: "Country code of Tuvalu; used for video and streaming sites.",
+  },
+  { ext: "us", kind: "country", about: "Country code of the United States." },
+  {
+    ext: "uk",
+    kind: "country",
+    about: "Country code of the United Kingdom, usually registered as co.uk or org.uk.",
+  },
+  {
+    ext: "de",
+    kind: "country",
+    about: "Country code of Germany; one of the largest country extensions.",
+  },
+  {
+    ext: "ca",
+    kind: "country",
+    about: "Country code of Canada; registrants need a Canadian presence.",
+  },
+  { ext: "in", kind: "country", about: "Country code of India; also used in the form co.in." },
+  { ext: "au", kind: "country", about: "Country code of Australia, usually registered as com.au." },
+  {
+    ext: "eu",
+    kind: "country",
+    about: "European Union code; registrants must be in the EU or EEA.",
+  },
+  { ext: "dev", kind: "new", about: "Run by Google for developers; sites must use HTTPS." },
+  { ext: "app", kind: "new", about: "Run by Google for applications; sites must use HTTPS." },
+  { ext: "tech", kind: "new", about: "For technology companies, products and blogs." },
+  { ext: "online", kind: "new", about: "General purpose for any business or site on the web." },
+  { ext: "site", kind: "new", about: "General purpose, often used for small sites and projects." },
+  { ext: "website", kind: "new", about: "General purpose for any website." },
+  { ext: "store", kind: "new", about: "For online shops and retailers." },
+  { ext: "shop", kind: "new", about: "For online shops and retailers." },
+  { ext: "cloud", kind: "new", about: "For cloud services, hosting and SaaS products." },
+  { ext: "host", kind: "new", about: "For hosting companies and hosting related sites." },
+  { ext: "hosting", kind: "new", about: "Aimed at hosting providers." },
+  {
+    ext: "xyz",
+    kind: "new",
+    about: "Open to anyone; popular for projects and as a low-cost option.",
+  },
+  { ext: "blog", kind: "new", about: "For blogs and personal publishing." },
+  { ext: "agency", kind: "new", about: "For creative, marketing and consulting agencies." },
+  { ext: "digital", kind: "new", about: "For digital businesses and agencies." },
+  { ext: "network", kind: "new", about: "For networks, communities and network services." },
+  { ext: "systems", kind: "new", about: "For IT and engineering companies." },
+  { ext: "email", kind: "new", about: "For email services and mail related sites." },
+  {
+    ext: "space",
+    kind: "new",
+    about: "General purpose, often used for creative and personal sites.",
+  },
+]
+
+function extensionBuild(v: GValues): GResult {
+  const q = s(v, "query").toLowerCase().replace(/^\./, "")
+  const kind = String(v.kind)
+  const list = TLD_DATA.filter(
+    (t) =>
+      (kind === "all" || t.kind === kind) &&
+      (!q || t.ext.includes(q) || t.about.toLowerCase().includes(q))
+  )
+  if (!list.length) return err("No extension matches. Try a shorter search.")
+  const label = { classic: "classic", new: "new generic", country: "country code" }
+  return [
+    `${list.length} extensions`,
+    "",
+    ...list.map((t) => `.${t.ext.padEnd(9)} ${label[t.kind].padEnd(13)} ${t.about}`),
+  ].join("\n")
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -1105,6 +1300,37 @@ export const generatorDefs: Record<string, GDef> = {
       num("max", "Longest name part (characters)", 20),
     ],
     build: domainNameBuild,
+  },
+  "domain-length-checker": {
+    outputLabel: "Result",
+    fields: [text("domain", "Domain name", "my-brand-hosting.com")],
+    build: lengthBuild,
+  },
+  "domain-combinations-generator": {
+    outputLabel: "Combinations",
+    note: "Every word in the first list is joined with every word in the second, and the third when given.",
+    fields: [
+      area("a", "First words, one per line", "cloud\nfast\nsecure"),
+      area("b", "Second words, one per line", "host\nserver\nvps"),
+      area("c", "Third words, optional, one per line", ""),
+      text("joiner", "Joiner (blank for none, or a hyphen)", ""),
+      text("tlds", "Extensions", ".com .net"),
+    ],
+    build: combinationsBuild,
+  },
+  "domain-extension-explorer": {
+    outputLabel: "Matching extensions",
+    note: "A reference of common extensions and what they are used for. Prices change constantly, so none are listed.",
+    fields: [
+      text("query", "Search (extension or use)", "", "tech"),
+      pick("kind", "Type", "all", [
+        ["all", "All"],
+        ["classic", "Classic generic"],
+        ["new", "New generic"],
+        ["country", "Country code"],
+      ]),
+    ],
+    build: extensionBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",

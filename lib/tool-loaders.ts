@@ -416,6 +416,46 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/backup-bandwidth-calculator").then((m) => ({
       default: m.BackupBandwidthCalculator,
     })),
+  "plesk-license-calculator": () =>
+    import("@/components/tools/plesk-license-calculator").then((m) => ({
+      default: m.PleskLicenseCalculator,
+    })),
+  "imunify360-license-calculator": () =>
+    import("@/components/tools/imunify360-license-calculator").then((m) => ({
+      default: m.Imunify360LicenseCalculator,
+    })),
+  "sitepad-license-calculator": () =>
+    import("@/components/tools/sitepad-license-calculator").then((m) => ({
+      default: m.SitepadLicenseCalculator,
+    })),
+  "whmreseller-license-calculator": () =>
+    import("@/components/tools/whmreseller-license-calculator").then((m) => ({
+      default: m.WhmresellerLicenseCalculator,
+    })),
+  "domain-renewal-cost-calculator": () =>
+    import("@/components/tools/domain-renewal-cost-calculator").then((m) => ({
+      default: m.DomainRenewalCostCalculator,
+    })),
+  "domain-profit-calculator": () =>
+    import("@/components/tools/domain-profit-calculator").then((m) => ({
+      default: m.DomainProfitCalculator,
+    })),
+  "domain-portfolio-value-calculator": () =>
+    import("@/components/tools/domain-portfolio-value-calculator").then((m) => ({
+      default: m.DomainPortfolioValueCalculator,
+    })),
+  "domain-length-checker": () =>
+    import("@/components/tools/domain-length-checker").then((m) => ({
+      default: m.DomainLengthChecker,
+    })),
+  "domain-combinations-generator": () =>
+    import("@/components/tools/domain-combinations-generator").then((m) => ({
+      default: m.DomainCombinationsGenerator,
+    })),
+  "domain-extension-explorer": () =>
+    import("@/components/tools/domain-extension-explorer").then((m) => ({
+      default: m.DomainExtensionExplorer,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

@@ -6,10 +6,12 @@ export interface Faq {
 }
 
 import { hosting_businessFaqs } from "@/lib/faqs/hosting-business"
+import { licenses_domainsFaqs } from "@/lib/faqs/licenses-domains"
 import { server_planningFaqs } from "@/lib/faqs/server-planning"
 
 export const toolFaqs: Record<string, Faq[]> = {
   ...hosting_businessFaqs,
+  ...licenses_domainsFaqs,
   ...server_planningFaqs,
 }
 
