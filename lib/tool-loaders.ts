@@ -524,6 +524,54 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/security-txt-generator").then((m) => ({
       default: m.SecurityTxtGenerator,
     })),
+  "email-subject-line-analyzer": () =>
+    import("@/components/tools/email-subject-line-analyzer").then((m) => ({
+      default: m.EmailSubjectLineAnalyzer,
+    })),
+  "email-address-validator": () =>
+    import("@/components/tools/email-address-validator").then((m) => ({
+      default: m.EmailAddressValidator,
+    })),
+  "email-address-normalizer": () =>
+    import("@/components/tools/email-address-normalizer").then((m) => ({
+      default: m.EmailAddressNormalizer,
+    })),
+  "email-domain-extractor": () =>
+    import("@/components/tools/email-domain-extractor").then((m) => ({
+      default: m.EmailDomainExtractor,
+    })),
+  "email-username-generator": () =>
+    import("@/components/tools/email-username-generator").then((m) => ({
+      default: m.EmailUsernameGenerator,
+    })),
+  "email-signature-generator": () =>
+    import("@/components/tools/email-signature-generator").then((m) => ({
+      default: m.EmailSignatureGenerator,
+    })),
+  "html-email-signature-generator": () =>
+    import("@/components/tools/html-email-signature-generator").then((m) => ({
+      default: m.HtmlEmailSignatureGenerator,
+    })),
+  "email-header-date-converter": () =>
+    import("@/components/tools/email-header-date-converter").then((m) => ({
+      default: m.EmailHeaderDateConverter,
+    })),
+  "email-attachment-size-calculator": () =>
+    import("@/components/tools/email-attachment-size-calculator").then((m) => ({
+      default: m.EmailAttachmentSizeCalculator,
+    })),
+  "email-size-calculator": () =>
+    import("@/components/tools/email-size-calculator").then((m) => ({
+      default: m.EmailSizeCalculator,
+    })),
+  "smtp-port-reference": () =>
+    import("@/components/tools/smtp-port-reference").then((m) => ({
+      default: m.SmtpPortReference,
+    })),
+  "email-mime-type-reference": () =>
+    import("@/components/tools/email-mime-type-reference").then((m) => ({
+      default: m.EmailMimeTypeReference,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

@@ -114,6 +114,15 @@ import {
   Smartphone,
   Split,
   Type,
+  Brush,
+  FileType,
+  MailCheck,
+  MailPlus,
+  MailQuestion,
+  Paperclip,
+  PenLine,
+  Plug,
+  UserRound,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -130,6 +139,7 @@ export type ToolCategory =
   | "linux"
   | "seo"
   | "server-planning"
+  | "email"
 
 export type ProjectItemType =
   | "subnet"
@@ -281,6 +291,12 @@ export const categories: CategoryDefinition[] = [
     label: "Server Planning",
     icon: Gauge,
     description: "Size RAM, CPU, storage, backups and databases for a hosting server",
+  },
+  {
+    id: "email",
+    label: "Email",
+    icon: Mail,
+    description: "Email address, signature, size and reference tools",
   },
 ]
 
@@ -2152,6 +2168,139 @@ export const tools: ToolDefinition[] = [
     category: "seo",
     features: ["RFC 9116 fields", "Expiry required", "URL checks"],
     keywords: ["security.txt", "rfc 9116", "vulnerability", "disclosure", "contact"],
+  },
+  // === email ===
+  {
+    slug: "email-subject-line-analyzer",
+    label: "Email Subject Line Analyzer",
+    title: "Email Subject Line Analyzer",
+    description:
+      "Check a subject line for length, spam trigger words, shouting and punctuation, with a phone preview",
+    icon: MailQuestion,
+    category: "email",
+    features: ["Length check", "Spam words", "Phone preview"],
+    keywords: ["email subject", "subject line", "open rate", "spam words", "newsletter"],
+  },
+  {
+    slug: "email-address-validator",
+    label: "Email Address Validator",
+    title: "Email Address Validator",
+    description:
+      "Check a list of email addresses for format problems and common domain typos like gmial.com",
+    icon: MailCheck,
+    category: "email",
+    features: ["Bulk check", "Typo hints", "Format reasons"],
+    keywords: ["email validator", "email address", "validate", "typo", "list cleaning"],
+  },
+  {
+    slug: "email-address-normalizer",
+    label: "Email Address Normalizer",
+    title: "Email Address Normalizer",
+    description:
+      "Clean an email list: lowercase, strip mailto and angle brackets, apply Gmail rules, dedupe and sort",
+    icon: MailPlus,
+    category: "email",
+    features: ["Gmail dot and plus rules", "Deduplicate", "Sort"],
+    keywords: ["email normalizer", "email list", "dedupe", "gmail", "clean"],
+  },
+  {
+    slug: "email-domain-extractor",
+    label: "Email Domain Extractor",
+    title: "Email Domain Extractor",
+    description:
+      "Pull every email address out of any text and list the unique domains with how often each appears",
+    icon: AtSign,
+    category: "email",
+    features: ["Finds addresses in text", "Domain counts", "Plain domain list"],
+    keywords: ["email domain", "extract", "domains", "list", "analysis"],
+  },
+  {
+    slug: "email-username-generator",
+    label: "Email Username Generator",
+    title: "Email Username Generator",
+    description:
+      "Generate common email username patterns from a first and last name, with an optional domain",
+    icon: UserRound,
+    category: "email",
+    features: ["Twelve patterns", "Accent safe", "Domain option"],
+    keywords: ["email username", "email format", "name patterns", "business email", "generator"],
+  },
+  {
+    slug: "email-signature-generator",
+    label: "Email Signature Generator",
+    title: "Plain Text Email Signature Generator",
+    description:
+      "Create a clean plain text email signature with name, role, company, phone, email and website",
+    icon: PenLine,
+    category: "email",
+    features: ["Plain text", "Optional divider", "Input checks"],
+    keywords: ["email signature", "plain text", "signature", "business email", "template"],
+  },
+  {
+    slug: "html-email-signature-generator",
+    label: "HTML Email Signature Generator",
+    title: "HTML Email Signature Generator",
+    description:
+      "Build a table based HTML email signature with an accent colour and optional logo that works in major clients",
+    icon: Brush,
+    category: "email",
+    features: ["Table layout", "Inline styles", "Escaped fields"],
+    keywords: ["html signature", "email signature", "html email", "logo", "template"],
+  },
+  {
+    slug: "email-header-date-converter",
+    label: "Email Header Date Converter",
+    title: "Email Header Date Converter",
+    description:
+      "Convert an email Date header, ISO date or Unix timestamp into the other formats and a chosen offset",
+    icon: CalendarClock,
+    category: "email",
+    features: ["Header to ISO", "Unix time", "Offset output"],
+    keywords: ["email header", "date header", "rfc 5322", "timestamp", "convert"],
+  },
+  {
+    slug: "email-attachment-size-calculator",
+    label: "Email Attachment Size Calculator",
+    title: "Email Attachment Size Calculator",
+    description:
+      "Find out if your attachments will fit a mailbox limit once the message is encoded for sending",
+    icon: Paperclip,
+    category: "email",
+    features: ["Encoded size", "Fit check", "Largest allowed"],
+    keywords: ["attachment size", "email limit", "base64", "25 mb", "file size"],
+  },
+  {
+    slug: "email-size-calculator",
+    label: "Email Size Calculator",
+    title: "Email Size Calculator",
+    description:
+      "Estimate the total size of an HTML email from its body, inline images and attachments, and spot clipping risks",
+    icon: Ruler,
+    category: "email",
+    features: ["Body and images", "Gmail clipping", "Encoded estimate"],
+    keywords: ["email size", "html email", "gmail clipping", "newsletter", "images"],
+  },
+  {
+    slug: "smtp-port-reference",
+    label: "SMTP Port Reference",
+    title: "SMTP and Mail Port Reference",
+    description:
+      "Look up SMTP, submission, IMAP and POP3 ports, including 25, 465, 587 and 2525, and when each applies",
+    icon: Plug,
+    category: "email",
+    features: ["Searchable", "Mail protocols", "TLS notes"],
+    keywords: ["smtp port", "587", "465", "imap", "pop3"],
+  },
+  {
+    slug: "email-mime-type-reference",
+    label: "Email MIME Type Reference",
+    title: "Email MIME Type Reference",
+    description:
+      "Find the MIME type for common email attachments such as PDF, Office files, images, archives and calendars",
+    icon: FileType,
+    category: "email",
+    features: ["Searchable", "Attachment types", "File extensions"],
+    keywords: ["mime type", "content type", "attachment", "email", "extension"],
   },
 ]
 

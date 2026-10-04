@@ -1615,6 +1615,484 @@ function securityTxtBuild(v: GValues): GResult {
   return `${rows.join("\n")}\n\nPlace this file at /.well-known/security.txt on your site (served over HTTPS).`
 }
 
+// ---------- batch 5: email ----------
+
+const EMAIL_LOCAL = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/
+const EMAIL_DOMAIN =
+  /^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/
+
+export function emailProblem(address: string): string | null {
+  const at = address.lastIndexOf("@")
+  if (at < 1) return "needs one @ with text before it"
+  if (address.indexOf("@") !== at) return "has more than one @"
+  const local = address.slice(0, at)
+  const domain = address.slice(at + 1)
+  if (address.length > 254) return "longer than 254 characters"
+  if (local.length > 64) return "name part longer than 64 characters"
+  if (!EMAIL_LOCAL.test(local))
+    return "name part has spaces, double dots or characters that are not allowed"
+  if (!domain) return "has no domain"
+  if (!EMAIL_DOMAIN.test(domain)) return "domain is not valid (needs a dot and a real extension)"
+  return null
+}
+
+const DOMAIN_TYPOS: Record<string, string> = {
+  "gmial.com": "gmail.com",
+  "gmai.com": "gmail.com",
+  "gamil.com": "gmail.com",
+  "gmail.con": "gmail.com",
+  "gmail.cm": "gmail.com",
+  "hotmial.com": "hotmail.com",
+  "hotmail.con": "hotmail.com",
+  "yahooo.com": "yahoo.com",
+  "yaho.com": "yahoo.com",
+  "yahoo.con": "yahoo.com",
+  "outlok.com": "outlook.com",
+  "outlook.con": "outlook.com",
+}
+
+function emailValidatorBuild(v: GValues): GResult {
+  const list = lines(s(v, "emails"))
+  if (!list.length) return err("Enter one email address per line.")
+  if (list.length > 1000) return err("Please check 1,000 addresses or fewer at a time.")
+  let good = 0
+  const rows = list.map((a) => {
+    const problem = emailProblem(a)
+    if (problem) return `INVALID  ${a}  (${problem})`
+    good++
+    const typo = DOMAIN_TYPOS[a.slice(a.lastIndexOf("@") + 1).toLowerCase()]
+    return typo ? `CHECK    ${a}  (did you mean @${typo}?)` : `OK       ${a}`
+  })
+  return [
+    `${good} of ${list.length} look valid`,
+    "",
+    ...rows,
+    "",
+    "This checks the format only. It cannot tell if a mailbox exists: only sending a message can.",
+  ].join("\n")
+}
+
+function emailNormalizeBuild(v: GValues): GResult {
+  const list = lines(s(v, "emails"))
+  if (!list.length) return err("Enter one email address per line.")
+  const out: string[] = []
+  const skipped: string[] = []
+  for (const raw of list) {
+    let a = raw
+      .replace(/^mailto:/i, "")
+      .replace(/^<|>$/g, "")
+      .trim()
+    const at = a.lastIndexOf("@")
+    if (at < 1) {
+      skipped.push(raw)
+      continue
+    }
+    let local = a.slice(0, at)
+    const domain = a.slice(at + 1).toLowerCase()
+    if (b(v, "lower")) local = local.toLowerCase()
+    const gmail = domain === "gmail.com" || domain === "googlemail.com"
+    if (b(v, "plus") || (b(v, "gmail") && gmail)) local = local.replace(/\+.*$/, "")
+    if (b(v, "gmail") && gmail) local = local.replace(/\./g, "")
+    a = `${local}@${gmail && b(v, "gmail") ? "gmail.com" : domain}`
+    if (emailProblem(a)) skipped.push(raw)
+    else out.push(a)
+  }
+  const unique = b(v, "dedupe") ? Array.from(new Set(out)) : out
+  if (b(v, "sort")) unique.sort()
+  if (!unique.length) return err("None of the lines were usable email addresses.")
+  return [
+    ...unique,
+    "",
+    `${unique.length} address(es)${out.length !== unique.length ? `, ${out.length - unique.length} duplicate(s) removed` : ""}${skipped.length ? `, ${skipped.length} skipped: ${skipped.slice(0, 5).join(", ")}` : ""}`,
+  ].join("\n")
+}
+
+function emailDomainBuild(v: GValues): GResult {
+  const text = String(v.text ?? "")
+  const found = text.match(/[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})/g) ?? []
+  if (!found.length) return err("No email addresses found in the text.")
+  const counts = new Map<string, number>()
+  for (const a of found) {
+    const d = a.slice(a.lastIndexOf("@") + 1).toLowerCase()
+    counts.set(d, (counts.get(d) ?? 0) + 1)
+  }
+  const rows = [...counts.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
+  return [
+    `${found.length} addresses, ${rows.length} unique domain(s)`,
+    "",
+    ...rows.map(([d, c]) => `${String(c).padStart(5)}  ${d}`),
+    ...(b(v, "plain") ? ["", "Domains only:", ...rows.map(([d]) => d)] : []),
+  ].join("\n")
+}
+
+function emailUsernameBuild(v: GValues): GResult {
+  const clean = (t: string) =>
+    t
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+  const first = clean(s(v, "first"))
+  const last = clean(s(v, "last"))
+  if (!first || !last) return err("Enter a first and a last name.")
+  const domain = s(v, "domain").toLowerCase()
+  if (domain && !isDomain(domain)) return err("Enter a valid domain or leave it blank.")
+  const fi = first[0]
+  const li = last[0]
+  const names = [
+    `${first}.${last}`,
+    `${first}${last}`,
+    `${fi}${last}`,
+    `${fi}.${last}`,
+    `${first}${li}`,
+    `${first}.${li}`,
+    `${last}.${first}`,
+    `${last}${fi}`,
+    `${first}_${last}`,
+    `${first}-${last}`,
+    first,
+    last,
+  ]
+  return Array.from(new Set(names))
+    .map((n) => (domain ? `${n}@${domain}` : n))
+    .join("\n")
+}
+
+const SAFE_PHONE = /^[+\d\s().-]{5,25}$/
+
+function sigFields(
+  v: GValues
+):
+  | { error: string }
+  | { name: string; title: string; company: string; phone: string; email: string; site: string } {
+  const name = s(v, "name")
+  if (!name) return err("Enter a name.")
+  const email = s(v, "email")
+  if (email && emailProblem(email)) return err("The email address is not valid.")
+  const phone = s(v, "phone")
+  if (phone && !SAFE_PHONE.test(phone))
+    return err("The phone number can only contain digits, spaces and + ( ) . -")
+  const site = s(v, "site")
+  if (site) {
+    try {
+      if (!/^https?:$/.test(new URL(site).protocol)) throw new Error()
+    } catch {
+      return err("The website must be a full http or https URL.")
+    }
+  }
+  return { name, title: s(v, "title"), company: s(v, "company"), phone, email, site }
+}
+
+function plainSignatureBuild(v: GValues): GResult {
+  const f = sigFields(v)
+  if ("error" in f) return f
+  const row2 = [f.title, f.company].filter(Boolean).join(", ")
+  const bar = b(v, "divider") ? ["--"] : []
+  return [
+    ...bar,
+    f.name,
+    row2,
+    f.phone && `Tel: ${f.phone}`,
+    f.email && `Email: ${f.email}`,
+    f.site && `Web: ${f.site}`,
+  ]
+    .filter((x) => x !== "")
+    .join("\n")
+}
+
+function htmlSignatureBuild(v: GValues): GResult {
+  const f = sigFields(v)
+  if ("error" in f) return f
+  const color = s(v, "color") || "#1e40af"
+  if (!/^#[0-9a-f]{6}$/i.test(color))
+    return err("Accent colour must be a 6 digit hex value such as #1e40af.")
+  const logo = s(v, "logo")
+  if (logo) {
+    try {
+      if (new URL(logo).protocol !== "https:") throw new Error()
+    } catch {
+      return err("The logo must be an https:// image URL.")
+    }
+  }
+  const e = attr
+  const line = (html: string) =>
+    `        <div style="font-size:13px;line-height:18px;color:#444444;">${html}</div>`
+  const rows = [
+    `        <div style="font-size:16px;line-height:22px;font-weight:bold;color:${color};">${e(f.name)}</div>`,
+    (f.title || f.company) && line(e([f.title, f.company].filter(Boolean).join(" | "))),
+    f.phone &&
+      line(
+        `<a href="tel:${f.phone.replace(/[^\d+]/g, "")}" style="color:#444444;text-decoration:none;">${e(f.phone)}</a>`
+      ),
+    f.email &&
+      line(
+        `<a href="mailto:${e(f.email)}" style="color:#444444;text-decoration:none;">${e(f.email)}</a>`
+      ),
+    f.site &&
+      line(
+        `<a href="${e(f.site)}" style="color:${color};text-decoration:none;">${e(f.site.replace(/^https?:\/\//, ""))}</a>`
+      ),
+  ].filter(Boolean) as string[]
+  const logoCell = logo
+    ? `      <td style="padding-right:14px;vertical-align:top;"><img src="${e(logo)}" alt="${e(f.company || f.name)}" width="80" style="display:block;border:0;" /></td>\n`
+    : ""
+  return [
+    '<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;">',
+    "  <tr>",
+    logoCell +
+      `      <td style="vertical-align:top;${logo ? `border-left:3px solid ${color};padding-left:14px;` : ""}">`,
+    ...rows,
+    "      </td>",
+    "  </tr>",
+    "</table>",
+  ]
+    .join("\n")
+    .replace(/\n\n/g, "\n")
+}
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+export function rfcDate(ms: number, offset: string): string {
+  const sign = offset[0] === "-" ? -1 : 1
+  const minutes = sign * (Number(offset.slice(1, 3)) * 60 + Number(offset.slice(3, 5)))
+  const d = new Date(ms + minutes * 60_000)
+  const p = (x: number) => String(x).padStart(2, "0")
+  return `${DAYS[d.getUTCDay()]}, ${p(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} ${offset}`
+}
+
+function emailDateBuild(v: GValues): GResult {
+  const raw = s(v, "input").replace(/\s*\([^)]*\)\s*$/, "")
+  if (!raw) return err("Paste a Date header value, an ISO date or a Unix timestamp.")
+  const offset = s(v, "offset") || "+0000"
+  if (!/^[+-]([01]\d|2[0-3])[0-5]\d$/.test(offset))
+    return err("The offset must look like +0000 or -0500.")
+  let ms: number
+  if (/^\d{9,13}$/.test(raw)) ms = raw.length <= 11 ? Number(raw) * 1000 : Number(raw)
+  else ms = Date.parse(raw.replace(/^Date:\s*/i, ""))
+  if (!Number.isFinite(ms))
+    return err("That date could not be read. Try a form like Tue, 14 Oct 2025 10:15:00 +0200.")
+  const ago = Date.now() - ms
+  const days = Math.floor(Math.abs(ago) / 86_400_000)
+  return [
+    `ISO 8601 (UTC):   ${new Date(ms).toISOString()}`,
+    `Unix seconds:     ${Math.floor(ms / 1000)}`,
+    `Date header:      ${rfcDate(ms, offset)}`,
+    `Relative:         ${days === 0 ? "today" : `${days} day(s) ${ago >= 0 ? "ago" : "from now"}`}`,
+  ].join("\n")
+}
+
+function attachmentBuild(v: GValues): GResult {
+  const sizes = [1, 2, 3, 4, 5, 6].map((i) => n(v, `f${i}`)).filter((x) => x > 0)
+  if (sizes.some((x) => !Number.isFinite(x) || x < 0)) return err("File sizes must be numbers.")
+  const limit = n(v, "limit")
+  if (!(limit > 0)) return err("Enter the mailbox size limit in MB.")
+  if (!sizes.length) return err("Enter at least one file size.")
+  const raw = sizes.reduce((a, c) => a + c, 0)
+  const encoded = raw * 1.37
+  return [
+    `Files:                 ${sizes.length}`,
+    `Total file size:       ${raw.toFixed(2)} MB`,
+    `Size once encoded:     ${encoded.toFixed(2)} MB  (base64 adds about 37% with line breaks)`,
+    `Limit:                 ${limit} MB`,
+    "",
+    encoded <= limit
+      ? `Fits, with ${(limit - encoded).toFixed(2)} MB to spare.`
+      : `Too big by ${(encoded - limit).toFixed(2)} MB. Largest raw total that fits: ${(limit / 1.37).toFixed(2)} MB.`,
+    "",
+    "Providers measure the encoded message, which is why a 20 MB file can fail a 25 MB limit.",
+  ].join("\n")
+}
+
+function emailSizeBuild(v: GValues): GResult {
+  const body = n(v, "body")
+  const images = Math.max(0, Math.floor(n(v, "images")))
+  const imageKb = n(v, "imageKb")
+  const attachMb = n(v, "attach")
+  if (![body, imageKb, attachMb].every((x) => x >= 0 && Number.isFinite(x)))
+    return err("Sizes must be zero or more.")
+  const inlineKb = images * imageKb
+  const encodedMb = (body * 1.1 + inlineKb * 1.37) / 1024 + attachMb * 1.37
+  const notes: string[] = []
+  if (body > 102)
+    notes.push(
+      "Gmail clips the displayed HTML body above about 102 KB and hides the rest behind 'View entire message'."
+    )
+  if (encodedMb > 25) notes.push("Over 25 MB: Gmail and most providers will reject it.")
+  else if (encodedMb > 20)
+    notes.push("Over 20 MB: some providers, including Outlook.com, will reject it.")
+  if (images > 0 && imageKb > 200)
+    notes.push("Large images slow loading on mobile: compress them or link to hosted copies.")
+  return [
+    `HTML body:               ${body.toFixed(1)} KB`,
+    `Inline images:           ${images} x ${imageKb} KB = ${inlineKb.toFixed(1)} KB`,
+    `Attachments:             ${attachMb.toFixed(2)} MB`,
+    `Estimated message size:  ${encodedMb.toFixed(2)} MB  (after MIME encoding)`,
+    "",
+    ...(notes.length ? notes.map((x) => `- ${x}`) : ["- No size problems found."]),
+  ].join("\n")
+}
+
+function subjectBuild(v: GValues): GResult {
+  const subject = s(v, "subject")
+  if (!subject) return err("Enter a subject line.")
+  const w = words(subject)
+  const spam = [
+    "free",
+    "winner",
+    "urgent",
+    "act now",
+    "limited time",
+    "100%",
+    "guarantee",
+    "cash",
+    "click here",
+    "buy now",
+    "congratulations",
+    "no obligation",
+    "risk free",
+    "earn money",
+  ]
+  const hits = spam.filter((x) => subject.toLowerCase().includes(x))
+  const caps = subject.replace(/[^A-Za-z]/g, "")
+  const capsShare = caps.length ? (caps.replace(/[^A-Z]/g, "").length / caps.length) * 100 : 0
+  const notes: string[] = []
+  if (subject.length > 60) notes.push("Over 60 characters: desktop clients will cut it off.")
+  else if (subject.length > 40)
+    notes.push("Over 40 characters: phones often show only the first 30 to 40.")
+  if (subject.length < 15) notes.push("Very short: it may not give a reason to open.")
+  if (hits.length) notes.push(`Words that spam filters and readers distrust: ${hits.join(", ")}.`)
+  if (capsShare > 40 && caps.length > 6) notes.push("Mostly capital letters reads as shouting.")
+  if ((subject.match(/[!?]/g) ?? []).length > 1)
+    notes.push("Several ! or ? marks look like marketing noise.")
+  if (/^(re|fwd?):/i.test(subject))
+    notes.push("Starting with Re: or Fwd: on a first message looks deceptive.")
+  if (/\p{Extended_Pictographic}/u.test(subject))
+    notes.push("Emoji can help attention but render differently across clients: test them.")
+  if (!notes.length) notes.push("No obvious problems.")
+  return [
+    `Characters:  ${subject.length}`,
+    `Words:       ${w.length}`,
+    `Preview on a phone (about 35): ${subject.slice(0, 35)}${subject.length > 35 ? "..." : ""}`,
+    "",
+    ...notes.map((x) => `- ${x}`),
+  ].join("\n")
+}
+
+export const SMTP_PORTS: { port: number; proto: string; use: string; note: string }[] = [
+  {
+    port: 25,
+    proto: "SMTP",
+    use: "Server to server delivery",
+    note: "Plain text with optional STARTTLS. Many ISPs and cloud hosts block outbound port 25.",
+  },
+  {
+    port: 465,
+    proto: "SMTPS",
+    use: "Mail submission over implicit TLS",
+    note: "Encrypted from the first byte. Preferred by RFC 8314.",
+  },
+  {
+    port: 587,
+    proto: "Submission",
+    use: "Mail submission from clients",
+    note: "Starts plain and upgrades with STARTTLS; requires authentication. RFC 6409.",
+  },
+  {
+    port: 2525,
+    proto: "SMTP (unofficial)",
+    use: "Alternative submission port",
+    note: "Not a standard. Some providers offer it when 25 and 587 are blocked.",
+  },
+  {
+    port: 143,
+    proto: "IMAP",
+    use: "Read mail on the server",
+    note: "Plain text with optional STARTTLS.",
+  },
+  {
+    port: 993,
+    proto: "IMAPS",
+    use: "Read mail over implicit TLS",
+    note: "The encrypted IMAP port that clients should prefer.",
+  },
+  { port: 110, proto: "POP3", use: "Download mail", note: "Plain text with optional STLS." },
+  {
+    port: 995,
+    proto: "POP3S",
+    use: "Download mail over implicit TLS",
+    note: "The encrypted POP3 port that clients should prefer.",
+  },
+  {
+    port: 4190,
+    proto: "ManageSieve",
+    use: "Manage server-side mail filters",
+    note: "Used by clients that edit Sieve rules.",
+  },
+]
+
+function smtpPortBuild(v: GValues): GResult {
+  const q = s(v, "query").toLowerCase()
+  const list = SMTP_PORTS.filter(
+    (p) => !q || `${p.port} ${p.proto} ${p.use} ${p.note}`.toLowerCase().includes(q)
+  )
+  if (!list.length) return err("No port matches. Try a protocol such as imap, or a number.")
+  return [
+    `${list.length} port(s)`,
+    "",
+    ...list.map(
+      (p) => `${String(p.port).padEnd(6)} ${p.proto.padEnd(18)} ${p.use}\n       ${p.note}`
+    ),
+  ].join("\n")
+}
+
+export const MIME_EMAIL: [string, string, string][] = [
+  ["pdf", "application/pdf", "PDF document"],
+  ["doc", "application/msword", "Word 97 to 2003 document"],
+  [
+    "docx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "Word document",
+  ],
+  ["xls", "application/vnd.ms-excel", "Excel 97 to 2003 workbook"],
+  ["xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Excel workbook"],
+  ["ppt", "application/vnd.ms-powerpoint", "PowerPoint 97 to 2003 deck"],
+  [
+    "pptx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "PowerPoint deck",
+  ],
+  ["txt", "text/plain", "Plain text"],
+  ["html", "text/html", "HTML message body"],
+  ["csv", "text/csv", "Comma separated values"],
+  ["ics", "text/calendar", "Calendar invitation"],
+  ["vcf", "text/vcard", "Contact card"],
+  ["json", "application/json", "JSON data"],
+  ["xml", "application/xml", "XML data"],
+  ["zip", "application/zip", "ZIP archive"],
+  ["gz", "application/gzip", "gzip archive"],
+  ["jpg", "image/jpeg", "JPEG image"],
+  ["png", "image/png", "PNG image"],
+  ["gif", "image/gif", "GIF image"],
+  ["webp", "image/webp", "WebP image"],
+  ["svg", "image/svg+xml", "SVG image (many clients block it)"],
+  ["mp3", "audio/mpeg", "MP3 audio"],
+  ["mp4", "video/mp4", "MP4 video"],
+  ["eml", "message/rfc822", "Forwarded email message"],
+  ["bin", "application/octet-stream", "Unknown binary data"],
+]
+
+function mimeEmailBuild(v: GValues): GResult {
+  const q = s(v, "query").toLowerCase().replace(/^\./, "")
+  const list = MIME_EMAIL.filter(([e, m, d]) => !q || `${e} ${m} ${d}`.toLowerCase().includes(q))
+  if (!list.length) return err("No type matches. Try an extension such as pdf.")
+  return [
+    `${list.length} type(s)`,
+    "",
+    ...list.map(([e, m, d]) => `.${e.padEnd(6)} ${m}\n        ${d}`),
+  ].join("\n")
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -2222,6 +2700,129 @@ export const generatorDefs: Record<string, GDef> = {
       text("lang", "Preferred languages (optional)", "en"),
     ],
     build: securityTxtBuild,
+  },
+  "email-subject-line-analyzer": {
+    outputLabel: "Analysis",
+    fields: [text("subject", "Subject line", "Your cPanel license is ready")],
+    build: subjectBuild,
+  },
+  "email-address-validator": {
+    outputLabel: "Results",
+    note: "Checks the format only. Nothing is sent and no mailbox is contacted.",
+    fields: [
+      area(
+        "emails",
+        "Addresses, one per line",
+        "support@example.com\nsales@gmial.com\nnot-an-email"
+      ),
+    ],
+    build: emailValidatorBuild,
+  },
+  "email-address-normalizer": {
+    outputLabel: "Normalized addresses",
+    fields: [
+      area(
+        "emails",
+        "Addresses, one per line",
+        "Jane.Doe+news@Gmail.com\njane.doe@gmail.com\n<Bob@Example.COM>"
+      ),
+      yes("lower", "Lowercase the name part", true),
+      yes("plus", "Remove +tags from all addresses"),
+      yes("gmail", "Gmail rules: remove dots and +tags", true),
+      yes("dedupe", "Remove duplicates", true),
+      yes("sort", "Sort A to Z"),
+    ],
+    build: emailNormalizeBuild,
+  },
+  "email-domain-extractor": {
+    outputLabel: "Domains",
+    fields: [
+      area(
+        "text",
+        "Text containing addresses",
+        "Contact a@example.com, b@example.com or c@other.org"
+      ),
+      yes("plain", "Also list domains only", true),
+    ],
+    build: emailDomainBuild,
+  },
+  "email-username-generator": {
+    outputLabel: "Username ideas",
+    fields: [
+      text("first", "First name", "Jane"),
+      text("last", "Last name", "Doe"),
+      text("domain", "Domain (optional)", "example.com"),
+    ],
+    build: emailUsernameBuild,
+  },
+  "email-signature-generator": {
+    outputLabel: "Signature",
+    fields: [
+      text("name", "Name", "Jane Doe"),
+      text("title", "Job title", "Support Lead"),
+      text("company", "Company", "Example Hosting"),
+      text("phone", "Phone", "+1 555 0100"),
+      text("email", "Email", "jane@example.com"),
+      text("site", "Website", "https://example.com"),
+      yes("divider", "Start with a -- divider", true),
+    ],
+    build: plainSignatureBuild,
+  },
+  "html-email-signature-generator": {
+    outputLabel: "HTML signature",
+    note: "Built with tables and inline styles, which is what email clients render reliably.",
+    fields: [
+      text("name", "Name", "Jane Doe"),
+      text("title", "Job title", "Support Lead"),
+      text("company", "Company", "Example Hosting"),
+      text("phone", "Phone", "+1 555 0100"),
+      text("email", "Email", "jane@example.com"),
+      text("site", "Website", "https://example.com"),
+      text("logo", "Logo image URL (https, optional)", ""),
+      text("color", "Accent colour", "#1e40af"),
+    ],
+    build: htmlSignatureBuild,
+  },
+  "email-header-date-converter": {
+    outputLabel: "Converted",
+    fields: [
+      text("input", "Date header, ISO date or Unix timestamp", "Tue, 14 Oct 2025 10:15:00 +0200"),
+      text("offset", "Offset for the Date header output", "+0000"),
+    ],
+    build: emailDateBuild,
+  },
+  "email-attachment-size-calculator": {
+    outputLabel: "Result",
+    fields: [
+      num("f1", "File 1 (MB)", 8),
+      num("f2", "File 2 (MB)", 6),
+      num("f3", "File 3 (MB)", 0),
+      num("f4", "File 4 (MB)", 0),
+      num("f5", "File 5 (MB)", 0),
+      num("f6", "File 6 (MB)", 0),
+      num("limit", "Mailbox size limit (MB)", 25),
+    ],
+    build: attachmentBuild,
+  },
+  "email-size-calculator": {
+    outputLabel: "Estimate",
+    fields: [
+      num("body", "HTML body size (KB)", 60),
+      num("images", "Inline images", 3),
+      num("imageKb", "Average image size (KB)", 80),
+      num("attach", "Attachments (MB)", 2),
+    ],
+    build: emailSizeBuild,
+  },
+  "smtp-port-reference": {
+    outputLabel: "Ports",
+    fields: [text("query", "Search (port or protocol)", "", "587")],
+    build: smtpPortBuild,
+  },
+  "email-mime-type-reference": {
+    outputLabel: "MIME types",
+    fields: [text("query", "Search (extension or type)", "", "pdf")],
+    build: mimeEmailBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",
