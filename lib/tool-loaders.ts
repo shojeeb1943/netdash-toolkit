@@ -456,6 +456,74 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/domain-extension-explorer").then((m) => ({
       default: m.DomainExtensionExplorer,
     })),
+  "word-counter": () =>
+    import("@/components/tools/word-counter").then((m) => ({ default: m.WordCounter })),
+  "character-counter": () =>
+    import("@/components/tools/character-counter").then((m) => ({ default: m.CharacterCounter })),
+  "reading-time-calculator": () =>
+    import("@/components/tools/reading-time-calculator").then((m) => ({
+      default: m.ReadingTimeCalculator,
+    })),
+  "keyword-density-calculator": () =>
+    import("@/components/tools/keyword-density-calculator").then((m) => ({
+      default: m.KeywordDensityCalculator,
+    })),
+  "heading-structure-analyzer": () =>
+    import("@/components/tools/heading-structure-analyzer").then((m) => ({
+      default: m.HeadingStructureAnalyzer,
+    })),
+  "internal-link-calculator": () =>
+    import("@/components/tools/internal-link-calculator").then((m) => ({
+      default: m.InternalLinkCalculator,
+    })),
+  "image-alt-text-generator": () =>
+    import("@/components/tools/image-alt-text-generator").then((m) => ({
+      default: m.ImageAltTextGenerator,
+    })),
+  "url-parser": () =>
+    import("@/components/tools/url-parser").then((m) => ({ default: m.UrlParser })),
+  "url-builder": () =>
+    import("@/components/tools/url-builder").then((m) => ({ default: m.UrlBuilder })),
+  "url-slug-generator": () =>
+    import("@/components/tools/url-slug-generator").then((m) => ({ default: m.UrlSlugGenerator })),
+  "url-length-checker": () =>
+    import("@/components/tools/url-length-checker").then((m) => ({ default: m.UrlLengthChecker })),
+  "canonical-url-generator": () =>
+    import("@/components/tools/canonical-url-generator").then((m) => ({
+      default: m.CanonicalUrlGenerator,
+    })),
+  "redirect-url-builder": () =>
+    import("@/components/tools/redirect-url-builder").then((m) => ({
+      default: m.RedirectUrlBuilder,
+    })),
+  "utm-campaign-generator": () =>
+    import("@/components/tools/utm-campaign-generator").then((m) => ({
+      default: m.UtmCampaignGenerator,
+    })),
+  "twitter-card-generator": () =>
+    import("@/components/tools/twitter-card-generator").then((m) => ({
+      default: m.TwitterCardGenerator,
+    })),
+  "open-graph-preview": () =>
+    import("@/components/tools/open-graph-preview").then((m) => ({ default: m.OpenGraphPreview })),
+  "twitter-card-preview": () =>
+    import("@/components/tools/twitter-card-preview").then((m) => ({
+      default: m.TwitterCardPreview,
+    })),
+  "meta-tag-generator": () =>
+    import("@/components/tools/meta-tag-generator").then((m) => ({ default: m.MetaTagGenerator })),
+  "html-sitemap-generator": () =>
+    import("@/components/tools/html-sitemap-generator").then((m) => ({
+      default: m.HtmlSitemapGenerator,
+    })),
+  "web-manifest-generator": () =>
+    import("@/components/tools/web-manifest-generator").then((m) => ({
+      default: m.WebManifestGenerator,
+    })),
+  "security-txt-generator": () =>
+    import("@/components/tools/security-txt-generator").then((m) => ({
+      default: m.SecurityTxtGenerator,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

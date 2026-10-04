@@ -29,6 +29,14 @@ export interface GDef {
   /** may be async (Web Crypto) */
   build: (v: GValues) => GResult | Promise<GResult>
   serp?: (v: GValues) => SerpPreview
+  /** link-card preview shown beside the report (text only, never loads an image) */
+  card?: (v: GValues) => {
+    kind: "og" | "twitter"
+    domain: string
+    title: string
+    description: string
+    large: boolean
+  }
   /** short notes shown under the result */
   help?: string[]
 }
@@ -989,6 +997,624 @@ function extensionBuild(v: GValues): GResult {
   ].join("\n")
 }
 
+// ---------- batch 4: SEO and web ----------
+
+const STOP = new Set(
+  "a an and are as at be but by for from has have he her his i if in into is it its me my no not of on or our she so than that the their them then there these they this to us was we were what when which who will with you your".split(
+    " "
+  )
+)
+const WORDS = /[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu
+
+function words(text: string): string[] {
+  return text.match(WORDS) ?? []
+}
+
+function wordCountBuild(v: GValues): GResult {
+  const text = String(v.text ?? "")
+  if (!text.trim()) return err("Paste or type some text.")
+  const w = words(text)
+  const sentences = text.split(/[.!?]+(?:\s|$)/).filter((x) => x.trim()).length
+  const paragraphs = text.split(/\n\s*\n/).filter((x) => x.trim()).length
+  const longest = w.reduce((a, b) => (b.length > a.length ? b : a), "")
+  return [
+    `Words:                ${w.length}`,
+    `Characters:           ${text.length}`,
+    `Characters (no spaces): ${text.replace(/\s/g, "").length}`,
+    `Sentences:            ${sentences}`,
+    `Paragraphs:           ${paragraphs}`,
+    `Average word length:  ${(w.reduce((n, x) => n + x.length, 0) / Math.max(1, w.length)).toFixed(1)}`,
+    `Longest word:         ${longest}`,
+    `Reading time:         ${Math.max(1, Math.round(w.length / 238))} min (238 words per minute)`,
+    `Speaking time:        ${Math.max(1, Math.round(w.length / 150))} min (150 words per minute)`,
+  ].join("\n")
+}
+
+function charCountBuild(v: GValues): GResult {
+  const text = String(v.text ?? "")
+  const chars = Array.from(text).length
+  const bytes = new TextEncoder().encode(text).length
+  const limits: [string, number][] = [
+    ["Meta title (about 60)", 60],
+    ["Meta description (about 160)", 160],
+    ["X / Twitter post", 280],
+    ["SMS, one part (GSM)", 160],
+    ["Instagram caption", 2200],
+  ]
+  return [
+    `Characters:             ${chars}`,
+    `Characters (no spaces): ${Array.from(text.replace(/\s/g, "")).length}`,
+    `UTF-8 bytes:            ${bytes}`,
+    `Lines:                  ${text ? text.split(/\r?\n/).length : 0}`,
+    "",
+    ...limits.map(
+      ([name, max]) =>
+        `${name.padEnd(30)} ${chars <= max ? `${max - chars} left` : `${chars - max} over`}`
+    ),
+  ].join("\n")
+}
+
+function readingTimeBuild(v: GValues): GResult {
+  const text = String(v.text ?? "")
+  const wpm = n(v, "wpm")
+  if (!(wpm >= 50 && wpm <= 1000)) return err("Words per minute must be between 50 and 1000.")
+  const count = words(text).length
+  if (!count) return err("Paste or type some text.")
+  const minutes = count / wpm
+  const images = Math.max(0, Math.floor(n(v, "images")))
+  const total = minutes + (images * 12) / 60
+  const mm = Math.floor(total)
+  const ss = Math.round((total - mm) * 60)
+  return [
+    `Words:         ${count}`,
+    `Reading time:  ${mm} min ${ss} s${images ? `  (includes ${images} image(s) at 12 s each)` : ""}`,
+    `Label:         ${Math.max(1, Math.round(total))} min read`,
+  ].join("\n")
+}
+
+function keywordBuild(v: GValues): GResult {
+  const text = String(v.text ?? "").toLowerCase()
+  const all = words(text)
+  if (all.length < 5) return err("Paste at least a few sentences.")
+  const size = Math.min(3, Math.max(1, n(v, "size") || 1))
+  const minLen = Math.max(1, n(v, "minLen") || 3)
+  const top = Math.min(50, Math.max(1, n(v, "top") || 15))
+  const counts = new Map<string, number>()
+  for (let i = 0; i + size <= all.length; i++) {
+    const gram = all.slice(i, i + size)
+    if (STOP.has(gram[0]) || STOP.has(gram[size - 1])) continue
+    if (gram.some((g) => g.length < minLen && !STOP.has(g))) continue
+    if (size === 1 && gram[0].length < minLen) continue
+    const key = gram.join(" ")
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const rows = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, top)
+  if (!rows.length) return err("No keywords found: lower the minimum length.")
+  return [
+    `Total words: ${all.length}`,
+    "",
+    "Keyword".padEnd(30) + "Count".padStart(6) + "Density".padStart(10),
+    ...rows.map(
+      ([k, c]) =>
+        k.padEnd(30) +
+        String(c).padStart(6) +
+        `${((c / all.length) * 100).toFixed(2)}%`.padStart(10)
+    ),
+    "",
+    "Density above roughly 3% for a single word can read as keyword stuffing.",
+  ].join("\n")
+}
+
+function parseHtml(html: string): Document {
+  return new DOMParser().parseFromString(html, "text/html")
+}
+
+function headingBuild(v: GValues): GResult {
+  const html = String(v.html ?? "")
+  if (!html.trim()) return err("Paste the HTML of the page or section.")
+  const doc = parseHtml(html)
+  const hs = Array.from(doc.querySelectorAll("h1,h2,h3,h4,h5,h6"))
+  if (!hs.length) return err("No headings (h1 to h6) found.")
+  const issues: string[] = []
+  const h1s = hs.filter((h) => h.tagName === "H1")
+  if (!h1s.length) issues.push("There is no h1.")
+  if (h1s.length > 1) issues.push(`There are ${h1s.length} h1 headings: one is the usual practice.`)
+  let prev = 0
+  hs.forEach((h, i) => {
+    const level = Number(h.tagName[1])
+    const label = (h.textContent ?? "").replace(/\s+/g, " ").trim()
+    if (!label) issues.push(`Heading ${i + 1} (h${level}) is empty.`)
+    if (prev && level > prev + 1)
+      issues.push(
+        `h${prev} is followed by h${level}: a level is skipped ("${label.slice(0, 40)}").`
+      )
+    if (label.length > 70) issues.push(`Heading ${i + 1} is ${label.length} characters long.`)
+    prev = level
+  })
+  const outline = hs.map(
+    (h) =>
+      `${"  ".repeat(Number(h.tagName[1]) - 1)}h${h.tagName[1]}  ${(h.textContent ?? "").replace(/\s+/g, " ").trim()}`
+  )
+  return [
+    `${hs.length} headings`,
+    "",
+    ...outline,
+    "",
+    issues.length ? "Issues" : "No structure issues found.",
+    ...issues.map((i) => `- ${i}`),
+  ].join("\n")
+}
+
+function internalLinkBuild(v: GValues): GResult {
+  const html = String(v.html ?? "")
+  const site = s(v, "site")
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+  if (!html.trim()) return err("Paste the HTML of the page.")
+  if (!isDomain(site)) return err("Enter your site's domain, for example example.com.")
+  const links = Array.from(parseHtml(html).querySelectorAll("a[href]"))
+  let internal = 0
+  let external = 0
+  let nofollow = 0
+  let empty = 0
+  let skipped = 0
+  const anchors = new Map<string, number>()
+  for (const a of links) {
+    const href = a.getAttribute("href") ?? ""
+    if (/^(mailto:|tel:|javascript:|#)/i.test(href)) {
+      skipped++
+      continue
+    }
+    let host = site
+    try {
+      host = new URL(href, `https://${site}/`).hostname.toLowerCase().replace(/^www\./, "")
+    } catch {
+      skipped++
+      continue
+    }
+    if (/nofollow/i.test(a.getAttribute("rel") ?? "")) nofollow++
+    const text = (a.textContent ?? "").replace(/\s+/g, " ").trim()
+    if (host === site || host.endsWith(`.${site}`)) {
+      internal++
+      if (!text) empty++
+      else anchors.set(text.toLowerCase(), (anchors.get(text.toLowerCase()) ?? 0) + 1)
+    } else external++
+  }
+  const top = [...anchors.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+  return [
+    `Links found:       ${links.length}`,
+    `Internal:          ${internal}`,
+    `External:          ${external}`,
+    `nofollow:          ${nofollow}`,
+    `Skipped (mailto, tel, #, javascript): ${skipped}`,
+    `Internal links with no anchor text: ${empty}`,
+    "",
+    top.length ? "Most used internal anchors" : "No internal anchor text found.",
+    ...top.map(([t, c]) => `  ${c}x  ${t}`),
+  ].join("\n")
+}
+
+const GENERIC_FILE = /^(img|dsc|dscn|image|photo|screenshot|pic|untitled|download)[-_ ]?\d*$/i
+
+function altBuild(v: GValues): GResult {
+  const files = lines(s(v, "files"))
+  if (!files.length) return err("Enter one image file name per line.")
+  const subject = s(v, "subject")
+  const out = files.map((file) => {
+    const base = file.replace(/^.*[\\/]/, "").replace(/\.[a-z0-9]{2,5}$/i, "")
+    if (GENERIC_FILE.test(base) || /^\d+$/.test(base))
+      return `${file}\n  Name "${base}" says nothing: describe what the image shows${subject ? `, for example "${subject}"` : ""}.`
+    const text = base
+      .replace(/[-_.]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+    const sentence = text.charAt(0).toUpperCase() + text.slice(1)
+    return `${file}\n  alt="${attr(subject ? `${sentence} - ${subject}` : sentence)}"`
+  })
+  return [
+    ...out,
+    "",
+    'Check: describe what is shown, keep it under about 125 characters, skip "image of", and use an empty alt (alt="") for purely decorative images.',
+  ].join("\n")
+}
+
+function urlParserBuild(v: GValues): GResult {
+  let url: URL
+  try {
+    url = new URL(s(v, "url"))
+  } catch {
+    return err("Enter a full URL such as https://example.com/path?x=1.")
+  }
+  const params = Array.from(url.searchParams.entries())
+  return [
+    `Protocol:  ${url.protocol.replace(":", "")}`,
+    `Username:  ${url.username || "(none)"}`,
+    `Host:      ${url.hostname}`,
+    `Port:      ${url.port || "(default)"}`,
+    `Path:      ${url.pathname}`,
+    `Query:     ${url.search || "(none)"}`,
+    `Fragment:  ${url.hash || "(none)"}`,
+    `Origin:    ${url.origin}`,
+    "",
+    params.length ? `Parameters (${params.length})` : "No query parameters.",
+    ...params.map(([k, val]) => `  ${k} = ${val}`),
+  ].join("\n")
+}
+
+function urlBuilderBuild(v: GValues): GResult {
+  let url: URL
+  try {
+    url = new URL(s(v, "base"))
+  } catch {
+    return err("Enter the base URL, for example https://example.com/search.")
+  }
+  if (!/^https?:$/.test(url.protocol)) return err("Only http and https URLs are supported.")
+  if (v.reset) url.search = ""
+  for (const line of lines(s(v, "params"))) {
+    const i = line.indexOf("=")
+    const key = (i < 0 ? line : line.slice(0, i)).trim()
+    if (!key) return err(`A parameter needs a name: "${line}".`)
+    url.searchParams.append(key, i < 0 ? "" : line.slice(i + 1).trim())
+  }
+  const frag = s(v, "hash").replace(/^#/, "")
+  url.hash = frag
+  return url.toString()
+}
+
+const FOLD: Record<string, string> = { ß: "ss", æ: "ae", ø: "o", œ: "oe", đ: "d", ł: "l" }
+
+export function slugify(text: string, sep = "-", max = 0, stop = false): string {
+  let out = text
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[ßæøœđł]/g, (c) => FOLD[c])
+    .replace(/&/g, " and ")
+  let parts = out.split(/[^a-z0-9]+/).filter(Boolean)
+  if (stop) {
+    const kept = parts.filter((p) => !STOP.has(p))
+    if (kept.length) parts = kept
+  }
+  out = parts.join(sep)
+  if (max > 0 && out.length > max) {
+    out = out.slice(0, max)
+    const cut = out.lastIndexOf(sep)
+    if (cut > max * 0.6) out = out.slice(0, cut)
+    out = out.replace(new RegExp(`${sep === "-" ? "-" : "_"}+$`), "")
+  }
+  return out
+}
+
+function slugBuild(v: GValues): GResult {
+  const input = lines(s(v, "text"))
+  if (!input.length) return err("Enter a title, one per line.")
+  const sep = v.sep === "_" ? "_" : "-"
+  const max = Math.max(0, n(v, "max") || 0)
+  const out = input.map((line) => slugify(line, sep, max, b(v, "stop")))
+  if (out.some((x) => !x)) return err("A line has no letters or numbers to use in a slug.")
+  return out.join("\n")
+}
+
+function urlLengthBuild(v: GValues): GResult {
+  const raw = s(v, "url")
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    return err("Enter a full URL starting with https://")
+  }
+  const path = url.pathname
+  const depth = path.split("/").filter(Boolean).length
+  const notes: string[] = []
+  if (raw.length > 2000)
+    notes.push("Over 2,000 characters: some browsers, servers and CDNs reject URLs this long.")
+  else if (raw.length > 115)
+    notes.push(
+      "Long for search results: Google shows roughly the first 60 to 70 characters of a URL."
+    )
+  else notes.push("A comfortable length.")
+  if (depth > 4)
+    notes.push(`Path is ${depth} levels deep: flatter URLs are easier to read and share.`)
+  if ([...url.searchParams].length > 3)
+    notes.push("Many query parameters: consider a clean path for pages you want indexed.")
+  if (/[A-Z]/.test(path))
+    notes.push("Uppercase letters in the path can create duplicate URLs: prefer lowercase.")
+  if (/_/.test(path))
+    notes.push("Underscores join words for search engines: hyphens separate them.")
+  return [
+    `Total length:  ${raw.length} characters`,
+    `Path length:   ${path.length} characters`,
+    `Path depth:    ${depth}`,
+    `Parameters:    ${[...url.searchParams].length}`,
+    "",
+    ...notes.map((x) => `- ${x}`),
+  ].join("\n")
+}
+
+const TRACKING = /^(utm_[a-z]+|fbclid|gclid|msclkid|dclid|mc_cid|mc_eid|ref|ref_src|_ga|igshid)$/i
+
+function canonicalBuild(v: GValues): GResult {
+  let url: URL
+  try {
+    url = new URL(s(v, "url"))
+  } catch {
+    return err("Enter the page URL, for example https://example.com/page?utm_source=x.")
+  }
+  if (!/^https?:$/.test(url.protocol)) return err("Only http and https URLs are supported.")
+  if (b(v, "https")) url.protocol = "https:"
+  url.hostname = url.hostname.toLowerCase()
+  if (v.www === "add" && !url.hostname.startsWith("www.")) url.hostname = `www.${url.hostname}`
+  if (v.www === "remove") url.hostname = url.hostname.replace(/^www\./, "")
+  url.hash = ""
+  if (v.params === "all") url.search = ""
+  else if (v.params === "tracking")
+    for (const k of [...url.searchParams.keys()]) if (TRACKING.test(k)) url.searchParams.delete(k)
+  if (b(v, "index")) url.pathname = url.pathname.replace(/\/index\.(html?|php)$/i, "/")
+  if (v.slash === "add" && !/\.[a-z0-9]+$/i.test(url.pathname) && !url.pathname.endsWith("/"))
+    url.pathname += "/"
+  if (v.slash === "remove" && url.pathname.length > 1)
+    url.pathname = url.pathname.replace(/\/+$/, "")
+  const href = url.toString()
+  return `${href}\n\n<link rel="canonical" href="${attr(href)}" />`
+}
+
+const REDIRECT_OK = /^[^\s"'`;{}\\<>]+$/
+
+function redirectBuild(v: GValues): GResult {
+  let from = s(v, "from")
+  const to = s(v, "to")
+  const code = Number(v.code)
+  if (/^https?:\/\//i.test(from)) {
+    try {
+      from = new URL(from).pathname
+    } catch {
+      return err("The old address is not a valid URL.")
+    }
+  }
+  if (!from.startsWith("/"))
+    return err("The old address must be a path starting with /, or a full URL.")
+  if (!REDIRECT_OK.test(from) || !REDIRECT_OK.test(to))
+    return err("Addresses cannot contain spaces, quotes, semicolons, braces or angle brackets.")
+  if (!/^(https?:\/\/|\/)/i.test(to))
+    return err("The new address must be a full URL or a path starting with /.")
+  const target = from === to ? null : to
+  if (!target) return err("The old and new addresses are the same: that would loop.")
+  const label = {
+    301: "permanent",
+    302: "temporary (found)",
+    307: "temporary (keeps method)",
+    308: "permanent (keeps method)",
+  }[code]
+  return [
+    `# ${code} ${label}`,
+    "",
+    "# Apache .htaccess",
+    `Redirect ${code} ${from} ${to}`,
+    "",
+    "# nginx server block",
+    `location = ${from} { return ${code} ${to}; }`,
+    "",
+    "# Netlify / Cloudflare Pages _redirects",
+    `${from} ${to} ${code}`,
+    "",
+    "# PHP, before any output",
+    `<?php header('Location: ${to.replace(/'/g, "%27")}', true, ${code}); exit;`,
+  ].join("\n")
+}
+
+function utmCampaignBuild(v: GValues): GResult {
+  let base: URL
+  try {
+    base = new URL(s(v, "url"))
+  } catch {
+    return err("Enter a full URL starting with https://")
+  }
+  const campaign = s(v, "campaign")
+  if (!campaign) return err("Enter a campaign name.")
+  const rows = lines(s(v, "channels"))
+  if (!rows.length) return err('Enter one channel per line as "source, medium".')
+  const out: string[] = []
+  for (const row of rows) {
+    const [source, medium] = row.split(",").map((x) => x.trim())
+    if (!source || !medium) return err(`"${row}" needs a source and a medium separated by a comma.`)
+    const u = new URL(base.toString())
+    u.searchParams.set("utm_source", source)
+    u.searchParams.set("utm_medium", medium)
+    u.searchParams.set("utm_campaign", campaign)
+    out.push(`${source} / ${medium}\n${u.toString()}`)
+  }
+  return out.join("\n\n")
+}
+
+function twitterCardBuild(v: GValues): GResult {
+  const title = s(v, "title")
+  if (!title) return err("Enter a title.")
+  const site = s(v, "site").replace(/^@/, "")
+  if (site && !/^\w{1,15}$/.test(site))
+    return err("The site handle can have up to 15 letters, numbers or underscores.")
+  const creator = s(v, "creator").replace(/^@/, "")
+  if (creator && !/^\w{1,15}$/.test(creator))
+    return err("The creator handle can have up to 15 letters, numbers or underscores.")
+  if (s(v, "image")) {
+    try {
+      new URL(s(v, "image"))
+    } catch {
+      return err("The image must be a full URL.")
+    }
+  }
+  const tags = [
+    `<meta name="twitter:card" content="${v.card}" />`,
+    site && `<meta name="twitter:site" content="@${site}" />`,
+    creator && `<meta name="twitter:creator" content="@${creator}" />`,
+    `<meta name="twitter:title" content="${attr(title)}" />`,
+    s(v, "description") &&
+      `<meta name="twitter:description" content="${attr(s(v, "description"))}" />`,
+    s(v, "image") && `<meta name="twitter:image" content="${attr(s(v, "image"))}" />`,
+    s(v, "alt") && `<meta name="twitter:image:alt" content="${attr(s(v, "alt"))}" />`,
+  ].filter(Boolean) as string[]
+  const warn: string[] = []
+  if (title.length > 70) warn.push("Titles over about 70 characters are cut off.")
+  if (s(v, "description").length > 200)
+    warn.push("Descriptions over about 200 characters are cut off.")
+  return [...tags, ...(warn.length ? ["", ...warn.map((w) => `<!-- ${w} -->`)] : [])].join("\n")
+}
+
+function cardReport(kind: string, v: GValues): GResult {
+  const title = s(v, "title")
+  if (!title) return err("Enter a title.")
+  const maxTitle = kind === "og" ? 60 : 70
+  const maxDesc = kind === "og" ? 155 : 200
+  const d = s(v, "description")
+  return [
+    `Title:        ${title.length} characters  (aim for up to ${maxTitle})`,
+    `Description:  ${d.length} characters  (aim for up to ${maxDesc})`,
+    s(v, "image")
+      ? "Image:        set"
+      : "Image:        missing: shares without an image get far less attention",
+    "",
+    title.length > maxTitle ? "The title will probably be cut off." : "The title fits.",
+    d.length > maxDesc ? "The description will probably be cut off." : "The description fits.",
+    "",
+    "The image is not loaded here, so nothing is requested from your image host.",
+  ].join("\n")
+}
+
+function metaTagBuild(v: GValues): GResult {
+  const title = s(v, "title")
+  const desc = s(v, "description")
+  if (!title) return err("Enter a page title.")
+  if (s(v, "canonical")) {
+    try {
+      new URL(s(v, "canonical"))
+    } catch {
+      return err("The canonical URL must be a full URL.")
+    }
+  }
+  if (s(v, "color") && !/^#[0-9a-f]{3,8}$/i.test(s(v, "color")))
+    return err("Theme colour must be a hex value such as #1e40af.")
+  const tags = [
+    '<meta charset="utf-8" />',
+    '<meta name="viewport" content="width=device-width, initial-scale=1" />',
+    `<title>${attr(title)}</title>`,
+    desc && `<meta name="description" content="${attr(desc)}" />`,
+    s(v, "keywords") && `<meta name="keywords" content="${attr(s(v, "keywords"))}" />`,
+    s(v, "author") && `<meta name="author" content="${attr(s(v, "author"))}" />`,
+    `<meta name="robots" content="${v.robots}" />`,
+    s(v, "canonical") && `<link rel="canonical" href="${attr(s(v, "canonical"))}" />`,
+    s(v, "color") && `<meta name="theme-color" content="${s(v, "color")}" />`,
+  ].filter(Boolean) as string[]
+  const notes: string[] = []
+  if (title.length > 60) notes.push(`Title is ${title.length} characters: aim for about 60.`)
+  if (desc.length > 160) notes.push(`Description is ${desc.length} characters: aim for about 160.`)
+  if (!desc) notes.push("No description: search engines will write one for you.")
+  return [...tags, ...(notes.length ? ["", ...notes.map((x) => `<!-- ${x} -->`)] : [])].join("\n")
+}
+
+function htmlSitemapBuild(v: GValues): GResult {
+  const rows = lines(s(v, "pages"))
+  if (!rows.length) return err('Enter one page per line as "URL | Title".')
+  const items: { url: string; title: string; group: string }[] = []
+  for (const row of rows) {
+    const [u, ...rest] = row.split("|")
+    const url = u.trim()
+    let parsed: URL
+    try {
+      parsed = new URL(url, "https://example.invalid")
+    } catch {
+      return err(`Not a valid URL: ${url}`)
+    }
+    const slug = parsed.pathname.split("/").filter(Boolean).pop() ?? "Home"
+    const title =
+      rest.join("|").trim() || slug.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase())
+    items.push({ url, title, group: parsed.pathname.split("/").filter(Boolean)[0] ?? "" })
+  }
+  const li = (i: (typeof items)[number]) =>
+    `    <li><a href="${attr(i.url)}">${attr(i.title)}</a></li>`
+  if (!b(v, "group")) return ["<ul>", ...items.map(li), "</ul>"].join("\n")
+  const groups = new Map<string, typeof items>()
+  for (const i of items) groups.set(i.group, [...(groups.get(i.group) ?? []), i])
+  return [...groups.entries()]
+    .map(
+      ([g, list]) =>
+        `<h2>${attr(g ? g.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase()) : "Main pages")}</h2>\n<ul>\n${list.map(li).join("\n")}\n</ul>`
+    )
+    .join("\n")
+}
+
+function manifestBuild(v: GValues): GResult {
+  const name = s(v, "name")
+  if (!name) return err("Enter the app name.")
+  for (const key of ["theme", "background"]) {
+    if (s(v, key) && !/^#[0-9a-f]{3,8}$/i.test(s(v, key)))
+      return err("Colours must be hex values such as #1e40af.")
+  }
+  const icons = lines(s(v, "icons")).map((row) => {
+    const [src, sizes, type] = row.split(/\s+/)
+    return { src, sizes: sizes ?? "", type: type ?? "" }
+  })
+  if (icons.some((i) => !i.src || !i.sizes))
+    return err('Icons need "path sizes type" on each line, e.g. /icon-192.png 192x192 image/png.')
+  const manifest: Record<string, unknown> = {
+    name,
+    short_name: s(v, "short") || name.slice(0, 12),
+    description: s(v, "description") || undefined,
+    start_url: s(v, "start") || "/",
+    display: v.display,
+    background_color: s(v, "background") || undefined,
+    theme_color: s(v, "theme") || undefined,
+    icons: icons.map((i) => ({ src: i.src, sizes: i.sizes, ...(i.type ? { type: i.type } : {}) })),
+  }
+  const notes =
+    icons.some((i) => i.sizes.includes("512x512")) && icons.some((i) => i.sizes.includes("192x192"))
+      ? ""
+      : "\nInstallable web apps need at least a 192x192 and a 512x512 icon."
+  return JSON.stringify(manifest, null, 2) + notes
+}
+
+function securityTxtBuild(v: GValues): GResult {
+  const contacts = lines(s(v, "contact"))
+  if (!contacts.length) return err("Add at least one contact (mailto:, https: or tel:).")
+  for (const c of contacts)
+    if (!/^(mailto:[^\s@]+@[^\s@]+|https:\/\/\S+|tel:\+?[\d\s-]+)$/i.test(c))
+      return err(`Contact must start with mailto:, https: or tel: -- got "${c}".`)
+  const expires = s(v, "expires")
+  if (!expires) return err("Expires is required by RFC 9116.")
+  const date = new Date(`${expires}T23:59:59Z`)
+  if (Number.isNaN(date.getTime())) return err("Expires is not a valid date.")
+  if (date.getTime() < Date.now()) return err("Expires must be in the future.")
+  if (date.getTime() - Date.now() > 366 * 86_400_000)
+    return err("RFC 9116 recommends an expiry under a year away, so the file stays maintained.")
+  const url = (id: string, label: string) => {
+    const val = s(v, id)
+    if (!val) return null
+    try {
+      if (new URL(val).protocol !== "https:") throw new Error()
+    } catch {
+      return { error: `${label} must be an https:// URL.` }
+    }
+    return val
+  }
+  const rows: string[] = contacts.map((c) => `Contact: ${c}`)
+  rows.push(`Expires: ${date.toISOString().replace(/\.\d+Z$/, "Z")}`)
+  for (const [id, label, field] of [
+    ["encryption", "Encryption", "Encryption"],
+    ["ack", "Acknowledgments", "Acknowledgments"],
+    ["policy", "Policy", "Policy"],
+    ["hiring", "Hiring", "Hiring"],
+    ["canonical", "Canonical", "Canonical"],
+  ] as const) {
+    const r = url(id, label)
+    if (r && typeof r === "object") return r
+    if (r) rows.push(`${field}: ${r}`)
+  }
+  if (s(v, "lang")) rows.push(`Preferred-Languages: ${s(v, "lang")}`)
+  return `${rows.join("\n")}\n\nPlace this file at /.well-known/security.txt on your site (served over HTTPS).`
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -1331,6 +1957,271 @@ export const generatorDefs: Record<string, GDef> = {
       ]),
     ],
     build: extensionBuild,
+  },
+  "word-counter": {
+    outputLabel: "Counts",
+    fields: [area("text", "Your text", "", "Paste or type here")],
+    help: [
+      "Most blog posts that rank for competitive terms run well over a thousand words, but length is not a goal on its own.",
+      "Meta descriptions work best around 150 to 160 characters, and titles around 60.",
+      "Counts update as you type and the text never leaves this page.",
+      "Counts of sentences rely on full stops, question marks and exclamation marks.",
+    ],
+    build: wordCountBuild,
+  },
+  "character-counter": {
+    outputLabel: "Counts and limits",
+    fields: [area("text", "Your text", "", "Paste or type here")],
+    build: charCountBuild,
+  },
+  "reading-time-calculator": {
+    outputLabel: "Reading time",
+    fields: [
+      area("text", "Your article", "", "Paste the text here"),
+      num("wpm", "Reading speed", 238),
+      num("images", "Images in the article", 0),
+    ],
+    build: readingTimeBuild,
+  },
+  "keyword-density-calculator": {
+    outputLabel: "Keyword table",
+    fields: [
+      area("text", "Page text", "", "Paste the visible text of the page"),
+      pick("size", "Phrase length", "1", [
+        ["1", "Single words"],
+        ["2", "Two word phrases"],
+        ["3", "Three word phrases"],
+      ]),
+      num("minLen", "Shortest word to count", 3),
+      num("top", "Rows to show", 15),
+    ],
+    build: keywordBuild,
+  },
+  "heading-structure-analyzer": {
+    outputLabel: "Outline and issues",
+    note: "The HTML is parsed in your browser. Scripts in it are not run.",
+    fields: [area("html", "HTML", "", "<h1>Title</h1>\n<h2>Section</h2>")],
+    build: headingBuild,
+  },
+  "internal-link-calculator": {
+    outputLabel: "Link report",
+    note: "The HTML is parsed in your browser. Nothing is fetched from your site.",
+    fields: [
+      text("site", "Your domain", "example.com"),
+      area("html", "Page HTML", "", '<a href="/about">About</a>'),
+    ],
+    build: internalLinkBuild,
+  },
+  "image-alt-text-generator": {
+    outputLabel: "Suggested alt text",
+    note: "Suggestions come from the file names. Always check them against what the image really shows.",
+    fields: [
+      area("files", "Image file names, one per line", "blue-cpanel-dashboard.png\nIMG_2041.jpg"),
+      text("subject", "Page topic (optional)", ""),
+    ],
+    build: altBuild,
+  },
+  "url-parser": {
+    outputLabel: "Parts",
+    fields: [text("url", "URL", "https://user@example.com:8443/path/page?x=1&y=two#section")],
+    build: urlParserBuild,
+  },
+  "url-builder": {
+    outputLabel: "URL",
+    fields: [
+      text("base", "Base URL", "https://example.com/search"),
+      area("params", "Parameters, one key=value per line", "q=cheap hosting\npage=2"),
+      text("hash", "Fragment (optional)", ""),
+      yes("reset", "Remove existing query parameters from the base"),
+    ],
+    build: urlBuilderBuild,
+  },
+  "url-slug-generator": {
+    outputLabel: "Slugs",
+    fields: [
+      area("text", "Titles, one per line", "How to Install cPanel on a VPS (2026 Guide)"),
+      pick("sep", "Separator", "-", [
+        ["-", "Hyphen (recommended)"],
+        ["_", "Underscore"],
+      ]),
+      num("max", "Maximum length (0 for none)", 0),
+      yes("stop", "Remove common words (the, a, of)"),
+    ],
+    build: slugBuild,
+  },
+  "url-length-checker": {
+    outputLabel: "Result",
+    fields: [text("url", "URL", "https://example.com/blog/how-to-install-cpanel-on-a-vps")],
+    build: urlLengthBuild,
+  },
+  "canonical-url-generator": {
+    outputLabel: "Canonical URL",
+    fields: [
+      text("url", "Page URL", "http://WWW.Example.com/Page/index.html?utm_source=news&id=7#top"),
+      yes("https", "Use https", true),
+      pick("www", "www", "keep", [
+        ["keep", "Keep as is"],
+        ["add", "Always www"],
+        ["remove", "Never www"],
+      ]),
+      pick("params", "Query parameters", "tracking", [
+        ["tracking", "Remove tracking only"],
+        ["all", "Remove all"],
+        ["none", "Keep all"],
+      ]),
+      pick("slash", "Trailing slash", "keep", [
+        ["keep", "Keep as is"],
+        ["add", "Add"],
+        ["remove", "Remove"],
+      ]),
+      yes("index", "Remove index.html and index.php", true),
+    ],
+    build: canonicalBuild,
+  },
+  "redirect-url-builder": {
+    outputLabel: "Redirect rules",
+    fields: [
+      text("from", "Old address (path or full URL)", "/old-page"),
+      text("to", "New address", "https://example.com/new-page"),
+      pick("code", "Status", "301", [
+        ["301", "301 permanent"],
+        ["302", "302 temporary"],
+        ["307", "307 temporary, keeps method"],
+        ["308", "308 permanent, keeps method"],
+      ]),
+    ],
+    build: redirectBuild,
+  },
+  "utm-campaign-generator": {
+    outputLabel: "Tagged links",
+    fields: [
+      text("url", "Landing page URL", "https://example.com/offer"),
+      text("campaign", "Campaign name", "spring_sale"),
+      area(
+        "channels",
+        "Channels, one 'source, medium' per line",
+        "newsletter, email\nfacebook, social\ngoogle, cpc"
+      ),
+    ],
+    build: utmCampaignBuild,
+  },
+  "twitter-card-generator": {
+    outputLabel: "Meta tags",
+    fields: [
+      pick("card", "Card type", "summary_large_image", [
+        ["summary_large_image", "Large image"],
+        ["summary", "Summary"],
+      ]),
+      text("site", "Site handle", "@example"),
+      text("creator", "Author handle (optional)", ""),
+      text("title", "Title", "Cheap cPanel License"),
+      area("description", "Description", "Instant activation and 24/7 support."),
+      text("image", "Image URL (optional)", ""),
+      text("alt", "Image description (optional)", ""),
+    ],
+    build: twitterCardBuild,
+  },
+  "open-graph-preview": {
+    outputLabel: "Length report",
+    note: "A text preview of how a link might look when shared. Real cards vary by platform.",
+    fields: [
+      text("domain", "Site", "example.com"),
+      text("title", "og:title", "Cheap cPanel License"),
+      area("description", "og:description", "Instant activation and 24/7 support."),
+      text("image", "og:image URL", ""),
+    ],
+    card: (v) => ({
+      kind: "og",
+      domain: s(v, "domain"),
+      title: s(v, "title"),
+      description: s(v, "description"),
+      large: true,
+    }),
+    build: (v) => cardReport("og", v),
+  },
+  "twitter-card-preview": {
+    outputLabel: "Length report",
+    note: "A text preview of how a link might look when posted. Real cards vary by app.",
+    fields: [
+      text("domain", "Site", "example.com"),
+      text("title", "twitter:title", "Cheap cPanel License"),
+      area("description", "twitter:description", "Instant activation and 24/7 support."),
+      text("image", "twitter:image URL", ""),
+    ],
+    card: (v) => ({
+      kind: "twitter",
+      domain: s(v, "domain"),
+      title: s(v, "title"),
+      description: s(v, "description"),
+      large: false,
+    }),
+    build: (v) => cardReport("twitter", v),
+  },
+  "meta-tag-generator": {
+    outputLabel: "Head tags",
+    fields: [
+      text("title", "Page title", "Cheap cPanel License | Example"),
+      area("description", "Description", "Buy a cPanel license with instant activation."),
+      text("keywords", "Keywords (optional)", ""),
+      text("author", "Author (optional)", ""),
+      pick("robots", "Search engines", "index, follow", [
+        ["index, follow", "Index and follow links"],
+        ["noindex, follow", "Do not index, follow links"],
+        ["noindex, nofollow", "Do not index or follow"],
+      ]),
+      text("canonical", "Canonical URL (optional)", ""),
+      text("color", "Theme colour (optional)", ""),
+    ],
+    build: metaTagBuild,
+  },
+  "html-sitemap-generator": {
+    outputLabel: "HTML",
+    fields: [
+      area(
+        "pages",
+        "Pages, one 'URL | Title' per line",
+        "/cpanel-license | cPanel License\n/blog/install-cpanel | Install cPanel"
+      ),
+      yes("group", "Group by the first folder in the path"),
+    ],
+    build: htmlSitemapBuild,
+  },
+  "web-manifest-generator": {
+    outputLabel: "manifest.webmanifest",
+    fields: [
+      text("name", "App name", "Example App"),
+      text("short", "Short name", "Example"),
+      text("description", "Description (optional)", ""),
+      text("start", "Start URL", "/"),
+      pick("display", "Display", "standalone", [
+        ["standalone", "standalone"],
+        ["fullscreen", "fullscreen"],
+        ["minimal-ui", "minimal-ui"],
+        ["browser", "browser"],
+      ]),
+      text("theme", "Theme colour", "#1e40af"),
+      text("background", "Background colour", "#ffffff"),
+      area(
+        "icons",
+        "Icons, one 'path sizes type' per line",
+        "/icon-192.png 192x192 image/png\n/icon-512.png 512x512 image/png"
+      ),
+    ],
+    build: manifestBuild,
+  },
+  "security-txt-generator": {
+    outputLabel: "security.txt",
+    fields: [
+      area("contact", "Contact, one per line", "mailto:security@example.com"),
+      { id: "expires", label: "Expires (date)", type: "date", value: "" },
+      text("encryption", "Encryption key URL (optional)"),
+      text("ack", "Acknowledgments URL (optional)"),
+      text("policy", "Policy URL (optional)"),
+      text("hiring", "Hiring URL (optional)"),
+      text("canonical", "Canonical URL of this file (optional)"),
+      text("lang", "Preferred languages (optional)", "en"),
+    ],
+    build: securityTxtBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",

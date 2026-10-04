@@ -36,6 +36,7 @@ function GeneratorTool({ slug, icon }: { slug: string; icon: LucideIcon }) {
   const failed = typeof result !== "string"
   const output = typeof result === "string" ? result : ""
   const serp = useMemo(() => (def.serp && !failed ? def.serp(values) : null), [def, values, failed])
+  const card = useMemo(() => (def.card && !failed ? def.card(values) : null), [def, values, failed])
   const errorId = `${slug}-error`
 
   return (
@@ -139,6 +140,18 @@ function GeneratorTool({ slug, icon }: { slug: string; icon: LucideIcon }) {
                   <li key={h}>{h}</li>
                 ))}
               </ul>
+            )}
+            {card && (
+              <div className="bg-background overflow-hidden rounded-xl border text-left">
+                <div className="bg-muted text-muted-foreground flex h-24 items-center justify-center text-xs">
+                  {card.large ? "Large image area" : "Image area"}
+                </div>
+                <div className="space-y-1 p-3">
+                  <p className="text-muted-foreground text-xs uppercase">{card.domain}</p>
+                  <p className="text-sm leading-snug font-semibold">{card.title}</p>
+                  <p className="text-muted-foreground text-xs leading-snug">{card.description}</p>
+                </div>
+              </div>
             )}
             {serp && (
               <div className="rounded-md border bg-white p-3 text-left dark:bg-white">
