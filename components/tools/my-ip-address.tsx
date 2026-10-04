@@ -63,6 +63,11 @@ export function MyIpAddress() {
                   "Not detected"
                 )}
               </div>
+              {!data?.ip && !loading && (
+                <div className="flex justify-center pt-2">
+                  <Button onClick={fetchMyIp}>Detect my IP address</Button>
+                </div>
+              )}
               {data?.ip && (
                 <div className="flex justify-center gap-2 pt-2">
                   <CopyButton value={data.ip} />

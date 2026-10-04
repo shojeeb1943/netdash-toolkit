@@ -199,3 +199,42 @@ describe("DNS Resolver Comparison", () => {
     expect(res.cloudflare.answers[0].data).toBe("93.184.216.34")
   })
 })
+
+// with do=1 resolvers add the RRSIG that signs each set to Answer; it must never reach a tool as an answer
+describe("DNSSEC signature records", () => {
+  const rrsig = {
+    name: "example.com.",
+    type: 46,
+    TTL: 300,
+    data: "ns 13 2 86400 1 2 3 example.com. c2ln",
+  }
+
+  it("resolve() drops RRSIG unless RRSIG itself is requested", async () => {
+    globalThis.fetch = vi.fn().mockImplementation(async () =>
+      makeMockJsonResponse({
+        Status: 0,
+        Answer: [{ name: "example.com.", type: 1, TTL: 300, data: "1.2.3.4" }, rrsig],
+      })
+    )
+    const { resolve } = await import("@/lib/doh")
+    expect((await resolve("example.com", "A")).Answer).toHaveLength(1)
+    expect((await resolve("example.com", "RRSIG")).Answer).toHaveLength(2)
+  })
+
+  it("a matching delegation is not reported as a mismatch because of the NS signature", async () => {
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) =>
+      String(url).includes("rdap.org")
+        ? makeMockJsonResponse({
+            ldhName: "example.com",
+            nameservers: [{ ldhName: "ns1.example.com" }],
+          })
+        : makeMockJsonResponse({
+            Status: 0,
+            Answer: [{ name: "example.com.", type: 2, TTL: 1, data: "ns1.example.com." }, rrsig],
+          })
+    )
+    const res = await checkNameserverDelegation("example.com")
+    expect(res.isConsistent).toBe(true)
+    expect(res.liveOnly).toEqual([])
+  })
+})

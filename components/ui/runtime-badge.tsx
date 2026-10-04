@@ -37,8 +37,17 @@ export function RuntimeDisclosure({ tool }: { tool: ToolDefinition }) {
       {runtime.offline === false && runtime.thirdParty?.length ? (
         <p>
           <Cloud className="mr-1 inline h-3 w-3 align-[-2px]" aria-hidden="true" />
-          What you enter is sent to <strong>{runtime.thirdParty?.join(", ")}</strong>. Requests only
-          happen when you ask for them.
+          {runtime.onLoad ? (
+            <>
+              Public data is fetched from <strong>{runtime.thirdParty.join(", ")}</strong> when this
+              page opens. Nothing you type is sent.
+            </>
+          ) : (
+            <>
+              What you enter is sent to <strong>{runtime.thirdParty.join(", ")}</strong>. Requests
+              only happen when you ask for them.
+            </>
+          )}
         </p>
       ) : null}
       {desktopOnly && (

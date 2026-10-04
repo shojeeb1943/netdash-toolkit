@@ -43,7 +43,12 @@ export async function resolve(
     url = `https://dns.google/resolve?name=${encodeURIComponent(cleanName)}&type=${encodeURIComponent(typeStr)}${doDnssec ? "&do=1" : ""}`
   }
 
-  return apiFetch<DohResponse>(url, { headers })
+  const res = await apiFetch<DohResponse>(url, { headers })
+  // with do=1 the Answer also carries the RRSIG (type 46) that signs each record set. a signature is not an
+  // answer and differs between resolvers, so callers never see it unless they ask for RRSIG itself
+  if (res.Answer && !/^(rrsig|46)$/i.test(typeStr))
+    res.Answer = res.Answer.filter((a) => a.type !== 46)
+  return res
 }
 
 export { reverseDnsName }

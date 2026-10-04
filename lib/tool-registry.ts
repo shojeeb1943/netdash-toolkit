@@ -211,6 +211,8 @@ export interface ToolRuntime {
   offline: boolean
   // hosts that receive user input, so the ui can say so before a request
   thirdParty?: string[]
+  // true when the tool contacts thirdParty as the page opens, sending nothing the visitor typed
+  onLoad?: boolean
   // capabilities that only exist in the desktop build, named honestly
   desktopOnly?: string[]
 }
@@ -3370,6 +3372,7 @@ export const tools: ToolDefinition[] = [
     runtime: {
       offline: false,
       thirdParty: ["open.er-api.com"],
+      onLoad: true,
     },
     keywords: [
       "hosting-currency",
@@ -3398,6 +3401,7 @@ export const tools: ToolDefinition[] = [
     runtime: {
       offline: false,
       thirdParty: ["open.er-api.com"],
+      onLoad: true,
     },
     keywords: [
       "license-price-converter",

@@ -110,7 +110,9 @@ function AboutTool({ tool }: { tool: ToolDefinition }) {
         {tool.description}.{" "}
         {offline
           ? "It runs entirely in your browser, so nothing you type is uploaded."
-          : "It contacts a third-party host only when you ask it to, and the tool names that host first."}
+          : tool.runtime?.onLoad
+            ? "It fetches public data from a third-party host when the page opens, and nothing you type is sent."
+            : "It contacts a third-party host only when you ask it to, and the tool names that host first."}
       </p>
       <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">
         {tool.features.map((feature) => (

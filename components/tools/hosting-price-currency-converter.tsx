@@ -140,7 +140,7 @@ export function HostingPriceCurrencyConverter() {
                     type="button"
                     onClick={handleSwap}
                     aria-label="Swap currencies"
-                    className="text-primary flex items-center gap-1 text-xs hover:underline"
+                    className="text-primary flex min-h-6 items-center gap-1 text-xs hover:underline"
                   >
                     <ArrowRightLeft className="h-3 w-3" />
                     Swap
