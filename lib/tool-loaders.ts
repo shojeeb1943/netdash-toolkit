@@ -572,6 +572,54 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/email-mime-type-reference").then((m) => ({
       default: m.EmailMimeTypeReference,
     })),
+  "tar-command-generator": () =>
+    import("@/components/tools/tar-command-generator").then((m) => ({
+      default: m.TarCommandGenerator,
+    })),
+  "find-command-generator": () =>
+    import("@/components/tools/find-command-generator").then((m) => ({
+      default: m.FindCommandGenerator,
+    })),
+  "grep-command-generator": () =>
+    import("@/components/tools/grep-command-generator").then((m) => ({
+      default: m.GrepCommandGenerator,
+    })),
+  "sed-command-generator": () =>
+    import("@/components/tools/sed-command-generator").then((m) => ({
+      default: m.SedCommandGenerator,
+    })),
+  "awk-command-generator": () =>
+    import("@/components/tools/awk-command-generator").then((m) => ({
+      default: m.AwkCommandGenerator,
+    })),
+  "curl-command-generator": () =>
+    import("@/components/tools/curl-command-generator").then((m) => ({
+      default: m.CurlCommandGenerator,
+    })),
+  "wget-command-generator": () =>
+    import("@/components/tools/wget-command-generator").then((m) => ({
+      default: m.WgetCommandGenerator,
+    })),
+  "systemd-service-generator": () =>
+    import("@/components/tools/systemd-service-generator").then((m) => ({
+      default: m.SystemdServiceGenerator,
+    })),
+  "systemd-timer-generator": () =>
+    import("@/components/tools/systemd-timer-generator").then((m) => ({
+      default: m.SystemdTimerGenerator,
+    })),
+  "php-fpm-config-generator": () =>
+    import("@/components/tools/php-fpm-config-generator").then((m) => ({
+      default: m.PhpFpmConfigGenerator,
+    })),
+  "linux-path-analyzer": () =>
+    import("@/components/tools/linux-path-analyzer").then((m) => ({
+      default: m.LinuxPathAnalyzer,
+    })),
+  "linux-path-normalizer": () =>
+    import("@/components/tools/linux-path-normalizer").then((m) => ({
+      default: m.LinuxPathNormalizer,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

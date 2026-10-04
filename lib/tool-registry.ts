@@ -123,6 +123,15 @@ import {
   PenLine,
   Plug,
   UserRound,
+  AlarmClock,
+  Cog,
+  Columns3,
+  Download,
+  FolderSearch,
+  Package,
+  Replace,
+  Terminal,
+  TextSearch,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -2301,6 +2310,139 @@ export const tools: ToolDefinition[] = [
     category: "email",
     features: ["Searchable", "Attachment types", "File extensions"],
     keywords: ["mime type", "content type", "attachment", "email", "extension"],
+  },
+  // === linux-commands ===
+  {
+    slug: "tar-command-generator",
+    label: "Tar Command Generator",
+    title: "Tar Command Generator",
+    description:
+      "Build a tar command to create, extract or list archives with gzip, bzip2, xz or zstd compression",
+    icon: Package,
+    category: "linux",
+    features: ["Create, extract, list", "Four compressors", "Exclude patterns"],
+    keywords: ["tar", "archive", "tar.gz", "compress", "backup"],
+  },
+  {
+    slug: "find-command-generator",
+    label: "Find Command Generator",
+    title: "Find Command Generator",
+    description:
+      "Build a find command to search by name, type, size, age, permissions or owner and then print or act on the results",
+    icon: FolderSearch,
+    category: "linux",
+    features: ["Name, size and age", "Owner and permissions", "Safe delete note"],
+    keywords: ["find", "search files", "mtime", "delete old files", "linux"],
+  },
+  {
+    slug: "grep-command-generator",
+    label: "Grep Command Generator",
+    title: "Grep Command Generator",
+    description:
+      "Build a grep command with regex mode, case, line numbers, context, include filters and folder skips",
+    icon: TextSearch,
+    category: "linux",
+    features: ["Four pattern modes", "Context lines", "File filters"],
+    keywords: ["grep", "search text", "regex", "log search", "linux"],
+  },
+  {
+    slug: "sed-command-generator",
+    label: "Sed Command Generator",
+    title: "Sed Command Generator",
+    description:
+      "Build a sed command to replace text, delete or print lines, with automatic escaping and safe in place editing",
+    icon: Replace,
+    category: "linux",
+    features: ["Auto escaping", "Backup on edit", "Line ranges"],
+    keywords: ["sed", "replace text", "find and replace", "in place", "linux"],
+  },
+  {
+    slug: "awk-command-generator",
+    label: "Awk Command Generator",
+    title: "Awk Command Generator",
+    description:
+      "Build an awk command to print columns, add up a column, count values or count matching lines",
+    icon: Columns3,
+    category: "linux",
+    features: ["Print columns", "Sum and count", "Filter rows"],
+    keywords: ["awk", "columns", "sum", "log analysis", "linux"],
+  },
+  {
+    slug: "curl-command-generator",
+    label: "Curl Command Generator",
+    title: "Curl Command Generator",
+    description:
+      "Build a curl command with method, headers, JSON body, authentication, timeout and output options",
+    icon: Terminal,
+    category: "linux",
+    features: ["Method and headers", "JSON check", "Safe quoting"],
+    keywords: ["curl", "http request", "api", "command line", "headers"],
+  },
+  {
+    slug: "wget-command-generator",
+    label: "Wget Command Generator",
+    title: "Wget Command Generator",
+    description:
+      "Build a wget command to download files, resume transfers, limit speed or mirror a site for offline use",
+    icon: Download,
+    category: "linux",
+    features: ["Resume downloads", "Speed limit", "Mirror mode"],
+    keywords: ["wget", "download", "mirror", "resume", "command line"],
+  },
+  {
+    slug: "systemd-service-generator",
+    label: "systemd Service Generator",
+    title: "systemd Service File Generator",
+    description:
+      "Create a systemd service unit with user, working folder, environment, restart policy and hardening options",
+    icon: Cog,
+    category: "linux",
+    features: ["Unit file", "Install commands", "Hardening options"],
+    keywords: ["systemd", "service", "unit file", "daemon", "linux"],
+  },
+  {
+    slug: "systemd-timer-generator",
+    label: "systemd Timer Generator",
+    title: "systemd Timer Generator",
+    description:
+      "Create a systemd timer and matching service as a cron alternative, with calendar or interval schedules",
+    icon: AlarmClock,
+    category: "linux",
+    features: ["Timer and service", "OnCalendar", "Catch up missed runs"],
+    keywords: ["systemd timer", "cron alternative", "oncalendar", "schedule", "linux"],
+  },
+  {
+    slug: "php-fpm-config-generator",
+    label: "PHP-FPM Config Generator",
+    title: "PHP-FPM Pool Config Generator",
+    description:
+      "Generate a PHP-FPM pool file with process manager limits, memory, upload size and security settings",
+    icon: FileCog,
+    category: "linux",
+    features: ["Pool file", "Spare server checks", "Hardening options"],
+    keywords: ["php-fpm", "pool", "pm.max_children", "php config", "hosting"],
+  },
+  {
+    slug: "linux-path-analyzer",
+    label: "Linux Path Analyzer",
+    title: "Linux Path Analyzer",
+    description:
+      "Break a Linux path into parts, normalise it and flag spaces, shell characters, dot segments and length limits",
+    icon: Route,
+    category: "linux",
+    features: ["Parts and depth", "Normalised form", "Warnings"],
+    keywords: ["linux path", "path", "analyze", "filename", "shell"],
+  },
+  {
+    slug: "linux-path-normalizer",
+    label: "Linux Path Normalizer",
+    title: "Linux Path Normalizer",
+    description:
+      "Resolve dot segments and double slashes in paths and see when a path tries to climb above the root",
+    icon: FolderTree,
+    category: "linux",
+    features: ["Resolves . and ..", "Removes //", "Escape warning"],
+    keywords: ["path normalize", "dot dot", "realpath", "linux", "traversal"],
   },
 ]
 

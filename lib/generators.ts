@@ -2093,6 +2093,491 @@ function mimeEmailBuild(v: GValues): GResult {
   ].join("\n")
 }
 
+// ---------- batch 6: Linux command and config generators ----------
+
+const shq = shellQuote
+
+function tarBuild(v: GValues): GResult {
+  const archive = s(v, "archive")
+  if (!archive) return err("Enter the archive file name.")
+  const zflag = { gz: "z", bz2: "j", xz: "J", none: "", zst: "" }[String(v.format)] ?? ""
+  const zstd = v.format === "zst" ? ["--zstd"] : []
+  const verbose = b(v, "verbose") ? "v" : ""
+  if (v.action === "create") {
+    const paths = lines(s(v, "paths"))
+    if (!paths.length) return err("Enter at least one file or folder to add.")
+    const excludes = lines(s(v, "exclude")).map((e) => `--exclude=${shq(e)}`)
+    const parts = [
+      "tar",
+      `-c${zflag}${verbose}${b(v, "perms") ? "p" : ""}f`,
+      shq(archive),
+      ...zstd,
+      ...excludes,
+    ]
+    if (s(v, "base")) parts.push("-C", shq(s(v, "base")))
+    parts.push(...paths.map((p) => shq(p)))
+    return parts.join(" ")
+  }
+  if (v.action === "list") return ["tar", `-t${zflag}${verbose}f`, shq(archive), ...zstd].join(" ")
+  const dest = s(v, "dest")
+  const strip = Math.max(0, Math.floor(n(v, "strip") || 0))
+  const parts = ["tar", `-x${zflag}${verbose}${b(v, "perms") ? "p" : ""}f`, shq(archive), ...zstd]
+  if (dest) parts.push("-C", shq(dest))
+  if (strip) parts.push(`--strip-components=${strip}`)
+  return parts.join(" ")
+}
+
+function findBuild(v: GValues): GResult {
+  const path = s(v, "path") || "."
+  const parts = ["find", shq(path)]
+  if (v.type !== "any") parts.push("-type", String(v.type))
+  const name = s(v, "name")
+  if (name) parts.push(b(v, "icase") ? "-iname" : "-name", shq(name))
+  const size = s(v, "size")
+  if (size) {
+    if (!/^[+-]?\d+[cwbkMG]?$/.test(size)) return err("Size looks like +100M, -10k or 512c.")
+    parts.push("-size", size)
+  }
+  const days = s(v, "days")
+  if (days) {
+    if (!/^[+-]?\d+$/.test(days)) return err("Days looks like +30 (older), -7 (newer) or 3.")
+    parts.push("-mtime", days)
+  }
+  if (b(v, "empty")) parts.push("-empty")
+  const perm = s(v, "perm")
+  if (perm) {
+    if (!/^[-/]?[0-7]{3,4}$/.test(perm)) return err("Permission looks like 644, -644 or /022.")
+    parts.push("-perm", perm)
+  }
+  const user = s(v, "user")
+  if (user) {
+    if (!SYSNAME.test(user) && !/^\d+$/.test(user))
+      return err("Owner must be an account name or id.")
+    parts.push("-user", user)
+  }
+  if (b(v, "depth") && n(v, "maxdepth") > 0)
+    parts.splice(2, 0, "-maxdepth", String(Math.floor(n(v, "maxdepth"))))
+  let note = ""
+  if (v.action === "delete") {
+    parts.push("-delete")
+    note = "# -delete cannot be undone. Run the same command with -print first and read the list.\n"
+  } else if (v.action === "exec") parts.push("-exec", "ls", "-lh", "{}", "+")
+  else if (v.action === "print0") parts.push("-print0")
+  else parts.push("-print")
+  return note + parts.join(" ")
+}
+
+function grepBuild(v: GValues): GResult {
+  const pattern = String(v.pattern ?? "")
+  if (!pattern) return err("Enter a pattern to search for.")
+  const flags = [
+    b(v, "recursive") && "-r",
+    b(v, "icase") && "-i",
+    b(v, "line") && "-n",
+    b(v, "invert") && "-v",
+    b(v, "word") && "-w",
+    b(v, "count") && "-c",
+    b(v, "files") && "-l",
+    v.mode === "fixed" && "-F",
+    v.mode === "extended" && "-E",
+    v.mode === "perl" && "-P",
+  ].filter(Boolean) as string[]
+  const parts = ["grep", ...flags]
+  const ctx = Math.floor(n(v, "context") || 0)
+  if (ctx > 0) parts.push(`-C${ctx}`)
+  if (s(v, "include")) parts.push(`--include=${shq(s(v, "include"))}`)
+  if (s(v, "exclude")) parts.push(`--exclude-dir=${shq(s(v, "exclude"))}`)
+  parts.push("--", shq(pattern))
+  if (s(v, "path")) parts.push(shq(s(v, "path")))
+  return parts.join(" ")
+}
+
+const sedEscapePattern = (t: string, delim: string) =>
+  t
+    .replace(/[.[\]*^$\\]/g, "\\$&")
+    .split(delim)
+    .join(`\\${delim}`)
+const sedEscapeReplace = (t: string, delim: string) =>
+  t.replace(/[\\&]/g, "\\$&").split(delim).join(`\\${delim}`)
+
+function sedBuild(v: GValues): GResult {
+  const file = s(v, "file")
+  if (!file) return err("Enter the file to edit.")
+  const inplace = b(v, "inplace") ? `-i${s(v, "backup") ? shq(s(v, "backup")) : ""}` : ""
+  const head = ["sed", inplace].filter(Boolean)
+  if (v.mode === "delete" || v.mode === "print") {
+    const range = s(v, "range")
+    if (!/^\d+(,\d+)?$/.test(range)) return err("Lines look like 5 or 5,10.")
+    const cmd = v.mode === "delete" ? `${range}d` : `${range}p`
+    return [...head, ...(v.mode === "print" ? ["-n"] : []), shq(cmd), shq(file)].join(" ")
+  }
+  const find = String(v.find ?? "")
+  if (!find) return err("Enter the text to find.")
+  const repl = String(v.replace ?? "")
+  const delim = ["/", "|", "#", "@", "~"].find((d) => !find.includes(d) && !repl.includes(d))
+  if (!delim) return err("The text uses every delimiter character (/ | # @ ~). Simplify it.")
+  const flags = `${b(v, "global") ? "g" : ""}${b(v, "icase") ? "I" : ""}`
+  const pat = b(v, "literal") ? sedEscapePattern(find, delim) : find.split(delim).join(`\\${delim}`)
+  return [
+    ...head,
+    shq(`s${delim}${pat}${delim}${sedEscapeReplace(repl, delim)}${delim}${flags}`),
+    shq(file),
+  ].join(" ")
+}
+
+function awkBuild(v: GValues): GResult {
+  const file = s(v, "file")
+  if (!file) return err("Enter the file to read.")
+  const sep = String(v.sep ?? "")
+  const fs = sep === "" ? [] : ["-F", shq(sep === "tab" ? "\t" : sep)]
+  const col = Math.floor(n(v, "column"))
+  const cols = s(v, "columns")
+  const cond = s(v, "value")
+  const op = String(v.op)
+  let guard = ""
+  if (cond) {
+    const condCol = Math.floor(n(v, "condColumn"))
+    if (!(condCol >= 1)) return err("The filter column must be 1 or more.")
+    const isNum = /^-?\d+(\.\d+)?$/.test(cond)
+    const rhs = isNum ? cond : `"${cond.replace(/[\\"]/g, "\\$&")}"`
+    guard = `$${condCol} ${op} ${rhs} `
+  }
+  let program: string
+  if (v.mode === "sum") {
+    if (!(col >= 1)) return err("The column must be 1 or more.")
+    program = `${guard ? `${guard.trim()} ` : ""}{ sum += $${col} } END { print sum }`
+  } else if (v.mode === "unique") {
+    if (!(col >= 1)) return err("The column must be 1 or more.")
+    program = `${guard ? `${guard.trim()} ` : ""}{ seen[$${col}]++ } END { for (k in seen) print k, seen[k] }`
+  } else if (v.mode === "count") {
+    program = `${guard ? `${guard.trim()} ` : ""}{ n++ } END { print n+0 }`
+  } else {
+    const list = cols.split(/[,\s]+/).filter(Boolean)
+    if (!list.length || list.some((c) => !/^\d+$/.test(c) || Number(c) < 1))
+      return err("Columns look like 1,3 or 2.")
+    program = `${guard ? `${guard.trim()} ` : ""}{ print ${list.map((c) => `$${c}`).join(", ")} }`
+  }
+  if (program.includes("'")) return err("Single quotes are not supported in the filter text.")
+  return ["awk", ...fs, `'${program}'`, shq(file)].join(" ")
+}
+
+function curlBuild(v: GValues): GResult {
+  let url: URL
+  try {
+    url = new URL(s(v, "url"))
+  } catch {
+    return err("Enter a full URL starting with https://")
+  }
+  if (!/^https?:$/.test(url.protocol)) return err("Only http and https URLs are supported.")
+  const method = String(v.method)
+  const parts = ["curl"]
+  const flags = [
+    b(v, "silent") && "-s",
+    b(v, "follow") && "-L",
+    b(v, "head") && "-i",
+    b(v, "insecure") && "-k",
+    b(v, "compressed") && "--compressed",
+    b(v, "fail") && "-f",
+  ].filter(Boolean) as string[]
+  parts.push(...flags)
+  if (method !== "GET") parts.push("-X", method)
+  const headers = lines(s(v, "headers"))
+  for (const h of headers) {
+    if (!/^[A-Za-z0-9-]+:\s*\S/.test(h))
+      return err(`A header looks like "Name: value" -- got "${h}".`)
+    parts.push("-H", shq(h))
+  }
+  const body = String(v.body ?? "")
+  if (body && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    if (b(v, "json")) {
+      try {
+        JSON.parse(body)
+      } catch {
+        return err("The body is not valid JSON.")
+      }
+      if (!headers.some((h) => /^content-type:/i.test(h)))
+        parts.push("-H", shq("Content-Type: application/json"))
+    }
+    parts.push("--data-raw", shq(body))
+  }
+  if (s(v, "user")) parts.push("-u", shq(s(v, "user")))
+  if (s(v, "agent")) parts.push("-A", shq(s(v, "agent")))
+  const timeout = Math.floor(n(v, "timeout") || 0)
+  if (timeout > 0) parts.push("--max-time", String(timeout))
+  if (s(v, "out")) parts.push("-o", shq(s(v, "out")))
+  parts.push(shq(url.toString()))
+  const warn = b(v, "insecure")
+    ? "# -k turns off certificate checks: use it only for testing.\n"
+    : ""
+  return warn + parts.join(" ")
+}
+
+function wgetBuild(v: GValues): GResult {
+  let url: URL
+  try {
+    url = new URL(s(v, "url"))
+  } catch {
+    return err("Enter a full URL starting with https://")
+  }
+  if (!/^(https?|ftp):$/.test(url.protocol))
+    return err("Only http, https and ftp URLs are supported.")
+  const parts = ["wget"]
+  if (b(v, "mirror")) parts.push("-m", "-k", "-p", "-np")
+  if (b(v, "cont")) parts.push("-c")
+  if (b(v, "quiet")) parts.push("-q")
+  if (b(v, "bg")) parts.push("-b")
+  if (b(v, "insecure")) parts.push("--no-check-certificate")
+  if (s(v, "rate")) {
+    if (!/^\d+[kKmM]?$/.test(s(v, "rate"))) return err("Rate looks like 500k or 2m.")
+    parts.push(`--limit-rate=${s(v, "rate")}`)
+  }
+  const tries = Math.floor(n(v, "tries") || 0)
+  if (tries > 0) parts.push(`--tries=${tries}`)
+  if (s(v, "agent")) parts.push("-U", shq(s(v, "agent")))
+  if (s(v, "dir")) parts.push("-P", shq(s(v, "dir")))
+  if (s(v, "out")) parts.push("-O", shq(s(v, "out")))
+  parts.push(shq(url.toString()))
+  return (
+    (b(v, "insecure")
+      ? "# --no-check-certificate turns off certificate checks: use it only for testing.\n"
+      : "") + parts.join(" ")
+  )
+}
+
+function serviceBuild(v: GValues): GResult {
+  const name = s(v, "name")
+  if (!/^[a-z0-9][a-z0-9@._-]{0,60}$/.test(name))
+    return err("Service name can use lowercase letters, numbers and . _ - @ only.")
+  const exec = s(v, "exec")
+  if (!exec.startsWith("/"))
+    return err("ExecStart must start with the full path of the program, such as /usr/bin/node.")
+  if (/[\r\n]/.test(exec)) return err("ExecStart must be a single line.")
+  const user = s(v, "user")
+  if (user && !SYSNAME.test(user)) return err("User must be a valid account name.")
+  const dir = s(v, "dir")
+  if (dir && !dir.startsWith("/")) return err("Working directory must be an absolute path.")
+  const envs = lines(s(v, "env"))
+  for (const e of envs)
+    if (!/^[A-Za-z_][A-Za-z0-9_]*=.*$/.test(e))
+      return err(`Environment lines look like KEY=value -- got "${e}".`)
+  const unit = [
+    "[Unit]",
+    `Description=${s(v, "description") || name}`,
+    ...(b(v, "network") ? ["After=network-online.target", "Wants=network-online.target"] : []),
+    "",
+    "[Service]",
+    "Type=simple",
+    `ExecStart=${exec}`,
+    ...(dir ? [`WorkingDirectory=${dir}`] : []),
+    ...(user ? [`User=${user}`] : []),
+    ...envs.map((e) => `Environment=${e.includes(" ") ? `"${e}"` : e}`),
+    `Restart=${v.restart}`,
+    ...(v.restart !== "no" ? ["RestartSec=5"] : []),
+    ...(b(v, "harden") ? ["NoNewPrivileges=true", "ProtectSystem=full", "PrivateTmp=true"] : []),
+    "",
+    "[Install]",
+    "WantedBy=multi-user.target",
+  ].join("\n")
+  return [
+    `# /etc/systemd/system/${name}.service`,
+    unit,
+    "",
+    "# then:",
+    "sudo systemctl daemon-reload",
+    `sudo systemctl enable --now ${name}.service`,
+    `systemctl status ${name}.service`,
+  ].join("\n")
+}
+
+function timerBuild(v: GValues): GResult {
+  const name = s(v, "name")
+  if (!/^[a-z0-9][a-z0-9@._-]{0,60}$/.test(name))
+    return err("Name can use lowercase letters, numbers and . _ - @ only.")
+  const exec = s(v, "exec")
+  if (!exec.startsWith("/")) return err("The command must start with the full path of the program.")
+  const when = s(v, "when")
+  if (!when) return err("Enter the schedule.")
+  const delay = Math.floor(n(v, "delay") || 0)
+  const user = s(v, "user")
+  if (user && !SYSNAME.test(user)) return err("User must be a valid account name.")
+  const trigger =
+    v.kind === "calendar"
+      ? /^[A-Za-z0-9*:,/ .~-]+$/.test(when)
+        ? [`OnCalendar=${when}`, ...(b(v, "persistent") ? ["Persistent=true"] : [])]
+        : null
+      : /^\d+(s|sec|m|min|h|hr|d|w)?$/.test(when)
+        ? [`OnBootSec=${when}`, `OnUnitActiveSec=${when}`]
+        : null
+  if (!trigger)
+    return err(
+      v.kind === "calendar"
+        ? "Calendar schedule looks like daily, Mon *-*-* 02:00:00 or *:0/15."
+        : "Interval looks like 15min, 1h or 30s."
+    )
+  return [
+    `# /etc/systemd/system/${name}.service`,
+    "[Unit]",
+    `Description=${s(v, "description") || name}`,
+    "",
+    "[Service]",
+    "Type=oneshot",
+    `ExecStart=${exec}`,
+    ...(user ? [`User=${user}`] : []),
+    "",
+    `# /etc/systemd/system/${name}.timer`,
+    "[Unit]",
+    `Description=Run ${name} on a schedule`,
+    "",
+    "[Timer]",
+    ...trigger,
+    ...(delay > 0 ? [`RandomizedDelaySec=${delay}`] : []),
+    "",
+    "[Install]",
+    "WantedBy=timers.target",
+    "",
+    "# then:",
+    "sudo systemctl daemon-reload",
+    `sudo systemctl enable --now ${name}.timer`,
+    "systemctl list-timers",
+  ].join("\n")
+}
+
+function phpFpmBuild(v: GValues): GResult {
+  const pool = s(v, "pool")
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(pool))
+    return err("Pool name can use letters, numbers, - and _ only.")
+  const user = s(v, "user")
+  const group = s(v, "group") || user
+  if (!SYSNAME.test(user) || !SYSNAME.test(group))
+    return err("User and group must be valid account names.")
+  const listen = v.listen === "tcp" ? "127.0.0.1:9000" : `/run/php/php-fpm-${pool}.sock`
+  const pm = String(v.pm)
+  const max = Math.floor(n(v, "max"))
+  if (!(max >= 1)) return err("max_children must be 1 or more.")
+  const start = Math.floor(n(v, "start"))
+  const minSpare = Math.floor(n(v, "minSpare"))
+  const maxSpare = Math.floor(n(v, "maxSpare"))
+  if (
+    pm === "dynamic" &&
+    !(minSpare >= 1 && minSpare <= start && start <= maxSpare && maxSpare <= max)
+  )
+    return err("For dynamic mode: 1 <= min spare <= start servers <= max spare <= max children.")
+  if (!/^\d+[KMG]?$/i.test(s(v, "memory"))) return err("Memory limit looks like 256M.")
+  if (!/^\d+[KMG]?$/i.test(s(v, "upload"))) return err("Upload size looks like 64M.")
+  const basedir = s(v, "basedir")
+  if (basedir && !basedir.split(":").every((p) => p.startsWith("/")))
+    return err("open_basedir paths must be absolute and separated by colons.")
+  return [
+    `[${pool}]`,
+    `user = ${user}`,
+    `group = ${group}`,
+    `listen = ${listen}`,
+    ...(v.listen === "socket"
+      ? ["listen.owner = www-data", "listen.group = www-data", "listen.mode = 0660"]
+      : []),
+    "",
+    `pm = ${pm}`,
+    `pm.max_children = ${max}`,
+    ...(pm === "dynamic"
+      ? [
+          `pm.start_servers = ${start}`,
+          `pm.min_spare_servers = ${minSpare}`,
+          `pm.max_spare_servers = ${maxSpare}`,
+        ]
+      : []),
+    ...(pm === "ondemand" ? ["pm.process_idle_timeout = 10s"] : []),
+    `pm.max_requests = ${Math.max(0, Math.floor(n(v, "requests")))}`,
+    "",
+    `php_admin_value[memory_limit] = ${s(v, "memory")}`,
+    `php_admin_value[upload_max_filesize] = ${s(v, "upload")}`,
+    `php_admin_value[post_max_size] = ${s(v, "upload")}`,
+    `php_admin_value[max_execution_time] = ${Math.max(1, Math.floor(n(v, "time") || 30))}`,
+    ...(basedir ? [`php_admin_value[open_basedir] = ${basedir}`] : []),
+    ...(b(v, "disable")
+      ? ["php_admin_value[disable_functions] = exec,passthru,shell_exec,system,proc_open,popen"]
+      : []),
+    "php_admin_flag[log_errors] = on",
+    `slowlog = /var/log/php-fpm/${pool}-slow.log`,
+    "request_slowlog_timeout = 5s",
+  ].join("\n")
+}
+
+export function normalizePath(
+  input: string,
+  keepSlash: boolean
+): { path: string; escaped: boolean } {
+  const absolute = input.startsWith("/")
+  const out: string[] = []
+  let escaped = false
+  for (const seg of input.split("/")) {
+    if (seg === "" || seg === ".") continue
+    if (seg === "..") {
+      if (out.length && out[out.length - 1] !== "..") out.pop()
+      else if (absolute) escaped = true
+      else out.push("..")
+    } else out.push(seg)
+  }
+  let path = (absolute ? "/" : "") + out.join("/")
+  if (!path) path = absolute ? "/" : "."
+  if (keepSlash && input.endsWith("/") && path !== "/" && path !== ".") path += "/"
+  return { path, escaped }
+}
+
+function pathNormalizeBuild(v: GValues): GResult {
+  const list = lines(String(v.paths ?? ""))
+  if (!list.length) return err("Enter one path per line.")
+  const out = list.map((p) => {
+    const r = normalizePath(p, b(v, "slash"))
+    return r.escaped ? `${r.path}   # tried to go above the root` : r.path
+  })
+  return out.join("\n")
+}
+
+function pathAnalyzeBuild(v: GValues): GResult {
+  const p = s(v, "path")
+  if (!p) return err("Enter a path.")
+  const norm = normalizePath(p, false)
+  const parts = norm.path.split("/").filter(Boolean)
+  const base = parts[parts.length - 1] ?? "/"
+  const dot = base.lastIndexOf(".")
+  const ext = dot > 0 ? base.slice(dot) : ""
+  const known: [RegExp, string][] = [
+    [/^\/etc(\/|$)/, "System configuration"],
+    [/^\/var\/log(\/|$)/, "Log files"],
+    [/^\/var\/www(\/|$)|^\/srv(\/|$)/, "Web content"],
+    [/^\/home(\/|$)|^\/root(\/|$)/, "User home data"],
+    [/^\/tmp(\/|$)|^\/var\/tmp(\/|$)/, "Temporary files (may be cleared)"],
+    [/^\/usr(\/|$)|^\/opt(\/|$)/, "Installed software"],
+    [/^\/proc(\/|$)|^\/sys(\/|$)|^\/dev(\/|$)/, "Virtual kernel filesystem"],
+  ]
+  const area = known.find(([re]) => re.test(norm.path))?.[1] ?? "No special meaning"
+  const issues: string[] = []
+  if (p.startsWith("~"))
+    issues.push(
+      "A leading ~ is expanded by the shell, not by programs, so it can fail inside quotes or scripts."
+    )
+  if (/\s/.test(p)) issues.push("Contains spaces: quote it in shell commands.")
+  if (/\/\//.test(p)) issues.push("Contains // which collapses to a single slash.")
+  if (/(^|\/)\.\.(\/|$)/.test(p))
+    issues.push("Contains .. which moves up a level: normalised below.")
+  if (/[*?[\]{}$`!;&|<>\\"']/.test(p))
+    issues.push("Contains characters the shell treats specially: always quote it.")
+  if (p.length > 4096) issues.push("Longer than PATH_MAX (4096 bytes on Linux).")
+  if (parts.some((x) => x.length > 255))
+    issues.push("A component is longer than 255 bytes, the usual filename limit.")
+  return [
+    `Type:        ${p.startsWith("/") ? "absolute" : "relative"}`,
+    `Normalized:  ${norm.path}`,
+    `Depth:       ${parts.length}`,
+    `Directory:   ${parts.length > 1 ? (p.startsWith("/") ? "/" : "") + parts.slice(0, -1).join("/") : p.startsWith("/") ? "/" : "."}`,
+    `Name:        ${base}`,
+    `Extension:   ${ext || "(none)"}`,
+    `Location:    ${area}`,
+    "",
+    ...(issues.length ? ["Notes", ...issues.map((x) => `- ${x}`)] : ["No problems found."]),
+  ].join("\n")
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -2823,6 +3308,256 @@ export const generatorDefs: Record<string, GDef> = {
     outputLabel: "MIME types",
     fields: [text("query", "Search (extension or type)", "", "pdf")],
     build: mimeEmailBuild,
+  },
+  "tar-command-generator": {
+    outputLabel: "Command",
+    fields: [
+      pick("action", "Action", "create", [
+        ["create", "Create an archive"],
+        ["extract", "Extract an archive"],
+        ["list", "List contents"],
+      ]),
+      pick("format", "Compression", "gz", [
+        ["gz", "gzip (.tar.gz)"],
+        ["bz2", "bzip2 (.tar.bz2)"],
+        ["xz", "xz (.tar.xz)"],
+        ["zst", "zstd (.tar.zst)"],
+        ["none", "None (.tar)"],
+      ]),
+      text("archive", "Archive file", "backup.tar.gz"),
+      area("paths", "Create: files and folders, one per line", "public_html\nconfig"),
+      text("base", "Create: change into this folder first (optional)", "/var/www"),
+      area("exclude", "Create: exclude patterns, one per line", "*.log\nnode_modules"),
+      text("dest", "Extract: destination folder (optional)", "/var/www/restore"),
+      num("strip", "Extract: leading folders to strip", 0),
+      yes("perms", "Preserve permissions (-p)", true),
+      yes("verbose", "Verbose (-v)"),
+    ],
+    build: tarBuild,
+  },
+  "find-command-generator": {
+    outputLabel: "Command",
+    fields: [
+      text("path", "Start in", "/var/log"),
+      pick("type", "Type", "f", [
+        ["any", "Anything"],
+        ["f", "Files"],
+        ["d", "Directories"],
+        ["l", "Symbolic links"],
+      ]),
+      text("name", "Name pattern", "*.log"),
+      yes("icase", "Ignore case (-iname)"),
+      text("size", "Size (for example +100M)", ""),
+      text("days", "Modified days ago (+30 older, -7 newer)", "+30"),
+      text("perm", "Permissions (644, -644, /022)", ""),
+      text("user", "Owner", ""),
+      yes("empty", "Only empty files or folders"),
+      yes("depth", "Limit depth"),
+      num("maxdepth", "Maximum depth", 2),
+      pick("action", "Then", "print", [
+        ["print", "Print the paths"],
+        ["print0", "Print for xargs -0"],
+        ["exec", "List details (ls -lh)"],
+        ["delete", "Delete them (careful)"],
+      ]),
+    ],
+    build: findBuild,
+  },
+  "grep-command-generator": {
+    outputLabel: "Command",
+    fields: [
+      text("pattern", "Pattern", "error"),
+      text("path", "Where to search", "/var/log/"),
+      pick("mode", "Pattern type", "basic", [
+        ["basic", "Basic regular expression"],
+        ["extended", "Extended regular expression (-E)"],
+        ["fixed", "Plain text (-F)"],
+        ["perl", "Perl regular expression (-P)"],
+      ]),
+      yes("recursive", "Search folders (-r)", true),
+      yes("icase", "Ignore case (-i)", true),
+      yes("line", "Show line numbers (-n)", true),
+      yes("invert", "Show lines that do not match (-v)"),
+      yes("word", "Whole words only (-w)"),
+      yes("count", "Only count matches (-c)"),
+      yes("files", "Only list file names (-l)"),
+      num("context", "Lines of context around matches", 0),
+      text("include", "Only files matching (optional)", "*.log"),
+      text("exclude", "Skip folders named (optional)", ""),
+    ],
+    build: grepBuild,
+  },
+  "sed-command-generator": {
+    outputLabel: "Command",
+    fields: [
+      pick("mode", "Task", "substitute", [
+        ["substitute", "Replace text"],
+        ["delete", "Delete lines"],
+        ["print", "Print lines"],
+      ]),
+      text("file", "File", "config.txt"),
+      text("find", "Find", "old.example.com"),
+      text("replace", "Replace with", "new.example.com"),
+      yes("global", "Every match on a line (g)", true),
+      yes("icase", "Ignore case (I)"),
+      yes("literal", "Treat the text to find as plain text", true),
+      text("range", "Lines for delete or print (5 or 5,10)", "5,10"),
+      yes("inplace", "Edit the file in place (-i)"),
+      text("backup", "Backup suffix for in place edits", ".bak"),
+    ],
+    build: sedBuild,
+  },
+  "awk-command-generator": {
+    outputLabel: "Command",
+    fields: [
+      text("file", "File", "access.log"),
+      text("sep", "Field separator (blank for whitespace, tab for tabs)", ""),
+      pick("mode", "Task", "print", [
+        ["print", "Print columns"],
+        ["sum", "Add up a column"],
+        ["unique", "Count each value of a column"],
+        ["count", "Count matching lines"],
+      ]),
+      text("columns", "Columns to print (for example 1,3)", "1,7"),
+      num("column", "Column to add up or count", 7),
+      num("condColumn", "Filter column", 9),
+      pick("op", "Filter test", "==", [
+        ["==", "equals"],
+        ["!=", "does not equal"],
+        [">", "greater than"],
+        ["<", "less than"],
+        ["~", "matches regex"],
+      ]),
+      text("value", "Filter value (blank for no filter)", "404"),
+    ],
+    build: awkBuild,
+  },
+  "curl-command-generator": {
+    outputLabel: "Command",
+    note: "Everything is built in your browser. Nothing is sent: copy the command and run it yourself.",
+    fields: [
+      pick("method", "Method", "GET", [
+        ["GET", "GET"],
+        ["POST", "POST"],
+        ["PUT", "PUT"],
+        ["PATCH", "PATCH"],
+        ["DELETE", "DELETE"],
+        ["HEAD", "HEAD"],
+      ]),
+      text("url", "URL", "https://api.example.com/v1/items"),
+      area("headers", "Headers, one per line", "Accept: application/json"),
+      area("body", "Body (POST, PUT, PATCH, DELETE)", ""),
+      yes("json", "Body is JSON (checked and tagged)"),
+      text("user", "Basic auth user:password (optional)", ""),
+      text("agent", "User agent (optional)", ""),
+      num("timeout", "Timeout in seconds (0 for none)", 30),
+      text("out", "Save to file (optional)", ""),
+      yes("silent", "Silent (-s)"),
+      yes("follow", "Follow redirects (-L)", true),
+      yes("head", "Show response headers (-i)"),
+      yes("compressed", "Ask for compression"),
+      yes("fail", "Fail on HTTP errors (-f)"),
+      yes("insecure", "Skip certificate check (-k)"),
+    ],
+    build: curlBuild,
+  },
+  "wget-command-generator": {
+    outputLabel: "Command",
+    fields: [
+      text("url", "URL", "https://example.com/file.zip"),
+      text("dir", "Save into folder (optional)", ""),
+      text("out", "Save as (optional)", ""),
+      text("rate", "Limit speed (500k, 2m, optional)", ""),
+      num("tries", "Retries (0 for default)", 3),
+      text("agent", "User agent (optional)", ""),
+      yes("cont", "Resume a partial download (-c)", true),
+      yes("mirror", "Mirror a site for offline use"),
+      yes("quiet", "Quiet (-q)"),
+      yes("bg", "Run in the background (-b)"),
+      yes("insecure", "Skip certificate check"),
+    ],
+    build: wgetBuild,
+  },
+  "systemd-service-generator": {
+    outputLabel: "Unit file and commands",
+    fields: [
+      text("name", "Service name", "myapp"),
+      text("description", "Description", "My application"),
+      text("exec", "ExecStart (full path)", "/usr/bin/node /srv/myapp/server.js"),
+      text("user", "Run as user", "www-data"),
+      text("dir", "Working directory (optional)", "/srv/myapp"),
+      area("env", "Environment, one KEY=value per line", "NODE_ENV=production"),
+      pick("restart", "Restart", "on-failure", [
+        ["on-failure", "On failure"],
+        ["always", "Always"],
+        ["no", "Never"],
+      ]),
+      yes("network", "Start after the network is up", true),
+      yes("harden", "Add basic hardening options", true),
+    ],
+    build: serviceBuild,
+  },
+  "systemd-timer-generator": {
+    outputLabel: "Unit files and commands",
+    fields: [
+      text("name", "Name", "nightly-backup"),
+      text("description", "Description", "Nightly backup"),
+      text("exec", "Command (full path)", "/usr/local/bin/backup.sh"),
+      text("user", "Run as user (optional)", ""),
+      pick("kind", "Schedule type", "calendar", [
+        ["calendar", "Calendar time (OnCalendar)"],
+        ["interval", "Repeat every interval"],
+      ]),
+      text("when", "Schedule", "*-*-* 02:00:00"),
+      num("delay", "Random delay in seconds", 300),
+      yes("persistent", "Run missed jobs after downtime", true),
+    ],
+    build: timerBuild,
+  },
+  "php-fpm-config-generator": {
+    outputLabel: "Pool file",
+    fields: [
+      text("pool", "Pool name", "example"),
+      text("user", "User", "example"),
+      text("group", "Group (blank to match the user)", ""),
+      pick("listen", "Listen on", "socket", [
+        ["socket", "Unix socket"],
+        ["tcp", "127.0.0.1:9000"],
+      ]),
+      pick("pm", "Process manager", "dynamic", [
+        ["dynamic", "dynamic"],
+        ["ondemand", "ondemand"],
+        ["static", "static"],
+      ]),
+      num("max", "pm.max_children", 20),
+      num("start", "pm.start_servers", 4),
+      num("minSpare", "pm.min_spare_servers", 2),
+      num("maxSpare", "pm.max_spare_servers", 6),
+      num("requests", "pm.max_requests", 500),
+      text("memory", "memory_limit", "256M"),
+      text("upload", "Upload and post size", "64M"),
+      num("time", "max_execution_time (seconds)", 30),
+      text("basedir", "open_basedir (optional)", "/home/example/:/tmp/"),
+      yes("disable", "Disable shell execution functions", true),
+    ],
+    build: phpFpmBuild,
+  },
+  "linux-path-analyzer": {
+    outputLabel: "Analysis",
+    fields: [text("path", "Path", "/var/www/../log//nginx/error.log")],
+    build: pathAnalyzeBuild,
+  },
+  "linux-path-normalizer": {
+    outputLabel: "Normalized paths",
+    fields: [
+      area(
+        "paths",
+        "Paths, one per line",
+        "/var/www/./site/../site2//public/\n../../etc/passwd\n/../etc"
+      ),
+      yes("slash", "Keep a trailing slash", true),
+    ],
+    build: pathNormalizeBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",
