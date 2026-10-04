@@ -93,7 +93,11 @@ function Tile({
         {px} x {px}
       </span>
       {href && (
-        <a className="text-primary text-xs underline" href={href} download={name}>
+        <a
+          className="text-primary inline-flex min-h-6 items-center text-xs underline"
+          href={href}
+          download={name}
+        >
           Download {name}
         </a>
       )}

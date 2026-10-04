@@ -161,6 +161,8 @@ export function ImageMetadataViewer() {
           <Input
             id="image-metadata-file"
             type="file"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "image-metadata-error" : undefined}
             accept="image/*"
             onChange={(e) => onFile(e.target.files?.[0])}
           />
@@ -178,7 +180,7 @@ export function ImageMetadataViewer() {
           <div aria-live="polite" className="space-y-3">
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription id="image-metadata-error">{error}</AlertDescription>
               </Alert>
             )}
             {meta?.exif?.hasGps && (
@@ -224,7 +226,7 @@ export function ImageMetadataViewer() {
               </Button>
               {downloadUrl && (
                 <a
-                  className="text-primary text-sm underline"
+                  className="text-primary inline-flex min-h-6 items-center text-sm underline"
                   href={downloadUrl}
                   download={`clean-${meta.name.replace(/\.[^.]+$/, "")}.${meta.type === "image/png" ? "png" : "jpg"}`}
                 >

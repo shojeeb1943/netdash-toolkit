@@ -84,6 +84,8 @@ export function ImageToBase64() {
           <Input
             id="image-to-base64-file"
             type="file"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "image-to-base64-error" : undefined}
             accept="image/*"
             onChange={(e) => onFile(e.target.files?.[0])}
           />
@@ -101,7 +103,7 @@ export function ImageToBase64() {
           <div aria-live="polite" className="space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription id="image-to-base64-error">{error}</AlertDescription>
               </Alert>
             )}
             {result ? (

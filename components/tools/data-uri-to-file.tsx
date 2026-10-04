@@ -88,7 +88,7 @@ export function DataUriToFile() {
                 </dl>
                 {url && (
                   <a
-                    className="text-primary inline-block text-sm underline"
+                    className="text-primary inline-flex min-h-6 items-center text-sm underline"
                     href={url}
                     download={`file.${extForMime(ok.mime)}`}
                   >
