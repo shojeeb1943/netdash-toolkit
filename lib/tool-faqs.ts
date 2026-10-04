@@ -6,9 +6,11 @@ export interface Faq {
 }
 
 import { hosting_businessFaqs } from "@/lib/faqs/hosting-business"
+import { server_planningFaqs } from "@/lib/faqs/server-planning"
 
 export const toolFaqs: Record<string, Faq[]> = {
   ...hosting_businessFaqs,
+  ...server_planningFaqs,
 }
 
 export function faqsFor(slug: string): Faq[] {

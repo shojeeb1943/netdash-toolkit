@@ -210,3 +210,162 @@ describe("hosting business calculators", () => {
     ).toBe(12)
   })
 })
+
+describe("server planning calculators", () => {
+  it("raid: usable capacity and validation per level", () => {
+    const s = "raid-capacity-calculator"
+    expect(get(s, "Usable capacity (TB)", { level: 5, drives: 4, size: 4 })).toBe(12)
+    expect(get(s, "Usable capacity (TB)", { level: 6, drives: 6, size: 4 })).toBe(16)
+    expect(get(s, "Usable capacity (TB)", { level: 10, drives: 4, size: 4 })).toBe(8)
+    expect(get(s, "Usable capacity (TB)", { level: 1, drives: 2, size: 4 })).toBe(4)
+    expect(typeof runCalc(s, { level: 5, drives: 2, size: 4 })).toBe("string")
+    expect(typeof runCalc(s, { level: 10, drives: 5, size: 4 })).toBe("string")
+    expect(typeof runCalc(s, { level: 3, drives: 4, size: 4 })).toBe("string")
+  })
+
+  it("vps ram rounds up to a real plan size", () => {
+    const s = "vps-ram-calculator"
+    expect(
+      get(s, "Plan size to buy (GB)", {
+        sites: 20,
+        perSite: 60,
+        db: 1024,
+        cache: 512,
+        os: 600,
+        headroom: 25,
+      })
+    ).toBe(8)
+    expect(
+      get(s, "Plan size to buy (GB)", {
+        sites: 1,
+        perSite: 10,
+        db: 0,
+        cache: 0,
+        os: 100,
+        headroom: 0,
+      })
+    ).toBe(1)
+  })
+
+  it("php workers: min of RAM and demand, and the RAM-limited warning", () => {
+    const s = "php-worker-calculator"
+    expect(
+      get(s, "Workers the RAM allows", { ram: 4, perWorker: 64, cores: 4, reqMs: 100, rps: 10 })
+    ).toBe(64)
+    expect(
+      get(s, "Workers the traffic needs", { ram: 4, perWorker: 64, cores: 4, reqMs: 100, rps: 10 })
+    ).toBe(1)
+    expect(
+      String(get(s, "Status", { ram: 1, perWorker: 100, cores: 4, reqMs: 1000, rps: 50 }))
+    ).toContain("RAM is the limit")
+  })
+
+  it("ram allocation, storage planner, swap", () => {
+    expect(
+      typeof runCalc("server-ram-allocation-calculator", {
+        total: 32,
+        os: 50,
+        db: 40,
+        php: 20,
+        cache: 5,
+      })
+    ).toBe("string")
+    expect(
+      get("server-ram-allocation-calculator", "Unallocated (GB)", {
+        total: 32,
+        os: 10,
+        db: 40,
+        php: 40,
+        cache: 10,
+      })
+    ).toBe(0)
+    expect(
+      get("server-storage-calculator", "Months until completely full", {
+        used: 500,
+        total: 1000,
+        growth: 50,
+        alarm: 80,
+      })
+    ).toBe(10)
+    expect(get("swap-size-calculator", "Recommended swap (GB)", { ram: 8, hibernate: 0 })).toBe(8)
+    expect(get("swap-size-calculator", "Recommended swap (GB)", { ram: 1, hibernate: 0 })).toBe(2)
+    expect(get("swap-size-calculator", "Recommended swap (GB)", { ram: 128, hibernate: 0 })).toBe(4)
+  })
+
+  it("backups, inodes, disk", () => {
+    expect(
+      get("backup-rotation-calculator", "Storage needed (GB)", {
+        size: 100,
+        daily: 7,
+        weekly: 4,
+        monthly: 12,
+        yearly: 1,
+        dedupe: 50,
+      })
+    ).toBe(1200)
+    expect(
+      get("inode-usage-calculator", "Total inodes", {
+        disk: 1,
+        ratio: 16384,
+        accounts: 1,
+        files: 1,
+      })
+    ).toBe(65536)
+    expect(
+      typeof runCalc("disk-usage-calculator", {
+        sites: 900,
+        mail: 200,
+        db: 0,
+        logs: 0,
+        backups: 0,
+        other: 0,
+        total: 1000,
+      })
+    ).toBe("string")
+    const bw = "backup-bandwidth-calculator"
+    expect(
+      get(bw, "Speed needed for a full backup (Mbps)", {
+        data: 100,
+        change: 5,
+        window: 1,
+        link: 1000,
+        eff: 100,
+      })
+    ).toBeCloseTo(222.22, 1)
+    expect(
+      get(bw, "Fits the window", { data: 100, change: 5, window: 1, link: 1000, eff: 100 })
+    ).toBe("Yes, even a full backup")
+  })
+
+  it("mysql, redis, bandwidth, cpu", () => {
+    expect(
+      get("mysql-ram-calculator", "Worst case memory (GB)", {
+        pool: 2,
+        globals: 0,
+        conns: 100,
+        perConn: 10,
+        active: 30,
+      })
+    ).toBeCloseTo(2 + 1000 / 1024, 5)
+    expect(get("redis-ram-calculator", "Bytes per key all in", {})).toBe(404)
+    expect(
+      get("vps-cpu-calculator", "vCPU plan to buy", {
+        visitors: 600,
+        perMin: 10,
+        ms: 100,
+        target: 50,
+      })
+    ).toBe(20)
+    expect(typeof runCalc("vps-cpu-calculator", { visitors: 1, perMin: 1, ms: 1, target: 0 })).toBe(
+      "string"
+    )
+    expect(
+      get("vps-bandwidth-calculator", "Transfer per month (GB)", {
+        visitors: 1024,
+        pages: 1,
+        size: 1,
+        peak: 10,
+      })
+    ).toBe(1)
+  })
+})

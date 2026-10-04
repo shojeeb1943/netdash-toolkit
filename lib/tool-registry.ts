@@ -85,6 +85,14 @@ import {
   UserMinus,
   Users,
   Wallet,
+  ArrowLeftRight,
+  CloudUpload,
+  DatabaseZap,
+  Files,
+  FolderTree,
+  MemoryStick,
+  RotateCcw,
+  Workflow,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -100,6 +108,7 @@ export type ToolCategory =
   | "domains"
   | "linux"
   | "seo"
+  | "server-planning"
 
 export type ProjectItemType =
   | "subnet"
@@ -245,6 +254,12 @@ export const categories: CategoryDefinition[] = [
     label: "SEO & Web",
     icon: Search,
     description: "Meta tag, sitemap, schema and tracking helpers",
+  },
+  {
+    id: "server-planning",
+    label: "Server Planning",
+    icon: Gauge,
+    description: "Size RAM, CPU, storage, backups and databases for a hosting server",
   },
 ]
 
@@ -1611,6 +1626,172 @@ export const tools: ToolDefinition[] = [
     category: "hosting",
     features: ["Cost stack", "Target margin", "Yearly price"],
     keywords: ["dedicated", "server", "pricing", "margin", "plan"],
+  },
+  // === server-planning ===
+  {
+    slug: "vps-ram-calculator",
+    label: "VPS RAM Calculator",
+    title: "VPS RAM Calculator",
+    description:
+      "Estimate how much RAM a VPS needs for your sites, database, cache and operating system with headroom",
+    icon: MemoryStick,
+    category: "server-planning",
+    features: ["Per-site memory", "Headroom", "Plan size to buy"],
+    keywords: ["vps", "ram", "memory", "sizing", "hosting"],
+  },
+  {
+    slug: "vps-cpu-calculator",
+    label: "VPS CPU Calculator",
+    title: "VPS CPU Calculator",
+    description:
+      "Work out how many vCPU cores you need from peak visitors, requests per minute and CPU time per request",
+    icon: Cpu,
+    category: "server-planning",
+    features: ["Peak requests", "Cores needed", "Target load"],
+    keywords: ["vps", "cpu", "cores", "sizing", "traffic"],
+  },
+  {
+    slug: "vps-storage-calculator",
+    label: "VPS Storage Calculator",
+    title: "VPS Storage Calculator",
+    description:
+      "Plan VPS disk size from sites, databases, mail, local backups and yearly growth with free space included",
+    icon: HardDrive,
+    category: "server-planning",
+    features: ["Growth planning", "Local backups", "Free space built in"],
+    keywords: ["vps", "storage", "disk", "sizing", "backups"],
+  },
+  {
+    slug: "vps-bandwidth-calculator",
+    label: "VPS Bandwidth Calculator",
+    title: "VPS Bandwidth Calculator",
+    description:
+      "Estimate monthly transfer and peak hour speed from visitors, pages per visit and average page weight",
+    icon: Network,
+    category: "server-planning",
+    features: ["Monthly transfer", "Peak Mbps", "Per day average"],
+    keywords: ["vps", "bandwidth", "traffic", "transfer", "mbps"],
+  },
+  {
+    slug: "server-storage-calculator",
+    label: "Server Storage Planner",
+    title: "Server Storage Planner",
+    description:
+      "Predict when a server disk will hit its alarm level or fill up based on current use and monthly growth",
+    icon: Database,
+    category: "server-planning",
+    features: ["Months to alarm", "Months to full", "12 month need"],
+    keywords: ["server", "storage", "growth", "capacity planning", "disk"],
+  },
+  {
+    slug: "raid-capacity-calculator",
+    label: "RAID Capacity Calculator",
+    title: "RAID Capacity Calculator",
+    description:
+      "Calculate usable capacity, efficiency and failure tolerance for RAID 0, 1, 5, 6 and 10 arrays",
+    icon: Layers,
+    category: "server-planning",
+    features: ["Usable capacity", "Space efficiency", "Failures survived"],
+    keywords: ["raid", "capacity", "usable", "storage", "array"],
+  },
+  {
+    slug: "swap-size-calculator",
+    label: "Swap Size Calculator",
+    title: "Swap Size Calculator",
+    description:
+      "Get a recommended Linux swap size for your RAM, including the larger size needed for hibernation",
+    icon: ArrowLeftRight,
+    category: "server-planning",
+    features: ["By RAM size", "Hibernation", "Swappiness advice"],
+    keywords: ["swap", "linux", "ram", "memory", "swappiness"],
+  },
+  {
+    slug: "php-worker-calculator",
+    label: "PHP Worker Calculator",
+    title: "PHP-FPM Worker Calculator",
+    description:
+      "Calculate a safe pm.max_children for PHP-FPM from RAM, memory per worker, CPU cores and peak traffic",
+    icon: Workflow,
+    category: "server-planning",
+    features: ["RAM limit", "Traffic need", "Suggested max_children"],
+    keywords: ["php-fpm", "workers", "max_children", "pm", "wordpress"],
+  },
+  {
+    slug: "mysql-ram-calculator",
+    label: "MySQL RAM Calculator",
+    title: "MySQL RAM Calculator",
+    description:
+      "Estimate MySQL or MariaDB memory use from the buffer pool, global buffers and per-connection buffers",
+    icon: DatabaseZap,
+    category: "server-planning",
+    features: ["Worst case", "Typical case", "Per-connection cost"],
+    keywords: ["mysql", "mariadb", "ram", "innodb", "buffer pool"],
+  },
+  {
+    slug: "redis-ram-calculator",
+    label: "Redis RAM Calculator",
+    title: "Redis RAM Calculator",
+    description:
+      "Estimate Redis memory from key count, key and value size, overhead, replicas and fragmentation",
+    icon: Zap,
+    category: "server-planning",
+    features: ["Per-key cost", "Replicas", "Fragmentation"],
+    keywords: ["redis", "ram", "cache", "memory", "keys"],
+  },
+  {
+    slug: "server-ram-allocation-calculator",
+    label: "Server RAM Allocation",
+    title: "Server RAM Allocation Calculator",
+    description:
+      "Split server RAM between the operating system, database, PHP and cache and see what is left over",
+    icon: PieChart,
+    category: "server-planning",
+    features: ["Share to gigabytes", "Leftover memory", "Overcommit check"],
+    keywords: ["ram", "allocation", "server", "memory", "split"],
+  },
+  {
+    slug: "disk-usage-calculator",
+    label: "Disk Usage Calculator",
+    title: "Disk Usage Calculator",
+    description:
+      "Break down what is using a server disk across sites, mail, databases, logs and backups",
+    icon: FolderTree,
+    category: "server-planning",
+    features: ["Usage split", "Free space", "Largest consumer"],
+    keywords: ["disk", "usage", "space", "breakdown", "hosting server"],
+  },
+  {
+    slug: "inode-usage-calculator",
+    label: "Inode Usage Calculator",
+    title: "Inode Usage Calculator",
+    description:
+      "Estimate inode capacity and usage for a hosting filesystem and set a fair per-account inode limit",
+    icon: Files,
+    category: "server-planning",
+    features: ["Total inodes", "Usage percent", "Per-account limit"],
+    keywords: ["inode", "inodes", "ext4", "limit", "hosting accounts"],
+  },
+  {
+    slug: "backup-rotation-calculator",
+    label: "Backup Rotation Calculator",
+    title: "Backup Rotation Calculator",
+    description:
+      "Plan a daily, weekly, monthly and yearly backup rotation and the storage it needs with compression",
+    icon: RotateCcw,
+    category: "server-planning",
+    features: ["Four generations", "Dedup savings", "Restore points"],
+    keywords: ["backup", "rotation", "gfs", "retention", "storage"],
+  },
+  {
+    slug: "backup-bandwidth-calculator",
+    label: "Backup Bandwidth Calculator",
+    title: "Backup Bandwidth Calculator",
+    description:
+      "Check if a full or incremental backup fits your window and link speed, and the Mbps it needs",
+    icon: CloudUpload,
+    category: "server-planning",
+    features: ["Speed needed", "Full and incremental", "Window check"],
+    keywords: ["backup", "bandwidth", "mbps", "window", "transfer"],
   },
 ]
 

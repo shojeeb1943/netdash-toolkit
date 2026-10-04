@@ -360,6 +360,62 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/dedicated-server-pricing-calculator").then((m) => ({
       default: m.DedicatedServerPricingCalculator,
     })),
+  "vps-ram-calculator": () =>
+    import("@/components/tools/vps-ram-calculator").then((m) => ({ default: m.VpsRamCalculator })),
+  "vps-cpu-calculator": () =>
+    import("@/components/tools/vps-cpu-calculator").then((m) => ({ default: m.VpsCpuCalculator })),
+  "vps-storage-calculator": () =>
+    import("@/components/tools/vps-storage-calculator").then((m) => ({
+      default: m.VpsStorageCalculator,
+    })),
+  "vps-bandwidth-calculator": () =>
+    import("@/components/tools/vps-bandwidth-calculator").then((m) => ({
+      default: m.VpsBandwidthCalculator,
+    })),
+  "server-storage-calculator": () =>
+    import("@/components/tools/server-storage-calculator").then((m) => ({
+      default: m.ServerStorageCalculator,
+    })),
+  "raid-capacity-calculator": () =>
+    import("@/components/tools/raid-capacity-calculator").then((m) => ({
+      default: m.RaidCapacityCalculator,
+    })),
+  "swap-size-calculator": () =>
+    import("@/components/tools/swap-size-calculator").then((m) => ({
+      default: m.SwapSizeCalculator,
+    })),
+  "php-worker-calculator": () =>
+    import("@/components/tools/php-worker-calculator").then((m) => ({
+      default: m.PhpWorkerCalculator,
+    })),
+  "mysql-ram-calculator": () =>
+    import("@/components/tools/mysql-ram-calculator").then((m) => ({
+      default: m.MysqlRamCalculator,
+    })),
+  "redis-ram-calculator": () =>
+    import("@/components/tools/redis-ram-calculator").then((m) => ({
+      default: m.RedisRamCalculator,
+    })),
+  "server-ram-allocation-calculator": () =>
+    import("@/components/tools/server-ram-allocation-calculator").then((m) => ({
+      default: m.ServerRamAllocationCalculator,
+    })),
+  "disk-usage-calculator": () =>
+    import("@/components/tools/disk-usage-calculator").then((m) => ({
+      default: m.DiskUsageCalculator,
+    })),
+  "inode-usage-calculator": () =>
+    import("@/components/tools/inode-usage-calculator").then((m) => ({
+      default: m.InodeUsageCalculator,
+    })),
+  "backup-rotation-calculator": () =>
+    import("@/components/tools/backup-rotation-calculator").then((m) => ({
+      default: m.BackupRotationCalculator,
+    })),
+  "backup-bandwidth-calculator": () =>
+    import("@/components/tools/backup-bandwidth-calculator").then((m) => ({
+      default: m.BackupBandwidthCalculator,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

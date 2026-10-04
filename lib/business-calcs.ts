@@ -785,6 +785,369 @@ export const calcDefs: Record<string, CalcDef> = {
       ]
     },
   },
+  "vps-ram-calculator": {
+    note: "Typical figures are pre-filled. Replace them with measurements from your own server for a tighter answer.",
+    fields: [
+      f("sites", "Websites", 20, "sites"),
+      f("perSite", "Average memory per site", 60, "MB"),
+      f("db", "Database server", 1024, "MB"),
+      f("cache", "Cache (Redis, Memcached, OPcache)", 512, "MB"),
+      f("os", "Operating system and services", 600, "MB"),
+      f("headroom", "Headroom for spikes", 25, "%"),
+    ],
+    compute: (v) => {
+      const base = v.sites * v.perSite + v.db + v.cache + v.os
+      const needMb = base * (1 + v.headroom / 100)
+      const sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+      const plan = sizes.find((s) => s * 1024 >= needMb) ?? sizes[sizes.length - 1]
+      return [
+        num("Memory needed (GB)", needMb / 1024, true),
+        num("Plan size to buy (GB)", plan, true),
+        num("Memory before headroom (GB)", base / 1024),
+        pct("Spare once running", ((plan * 1024 - needMb) / (plan * 1024)) * 100),
+      ]
+    },
+  },
+  "vps-cpu-calculator": {
+    fields: [
+      f("visitors", "Concurrent visitors at peak", 200, "visitors"),
+      f("perMin", "Dynamic requests per visitor per minute", 6, "requests"),
+      f("ms", "CPU time per request", 80, "ms"),
+      f("target", "Highest CPU load you accept", 70, "%"),
+    ],
+    compute: (v) => {
+      if (v.target <= 0 || v.target > 100) return "Target load must be between 1 and 100%."
+      const rps = (v.visitors * v.perMin) / 60
+      const busy = (rps * v.ms) / 1000
+      const cores = busy / (v.target / 100)
+      return [
+        num("Requests per second at peak", rps),
+        num("CPU cores busy", busy),
+        num("Cores needed", Math.ceil(cores * 10) / 10, true),
+        num("vCPU plan to buy", Math.max(1, Math.ceil(cores)), true),
+      ]
+    },
+  },
+  "vps-storage-calculator": {
+    fields: [
+      f("sites", "Websites", 20, "sites"),
+      f("perSite", "Average site files", 1.5, "GB", 0.1),
+      f("db", "Databases (total)", 10, "GB", 0.1),
+      f("mail", "Mailboxes (total)", 8, "GB", 0.1),
+      f("os", "Operating system and logs", 20, "GB", 0.1),
+      f("backups", "Local backup copies kept", 2, "copies"),
+      f("growth", "Yearly growth", 30, "%"),
+      f("years", "Plan ahead for", 2, "years"),
+    ],
+    compute: (v) => {
+      const data = v.sites * v.perSite + v.db + v.mail
+      const grown = data * Math.pow(1 + v.growth / 100, v.years)
+      const total = grown * (1 + v.backups) + v.os
+      return [
+        num("Live data today (GB)", data),
+        num("Live data after growth (GB)", grown),
+        num("Disk to provision (GB)", total * 1.2, true),
+        text("Includes", "20% free space so the disk is never full"),
+      ]
+    },
+  },
+  "vps-bandwidth-calculator": {
+    fields: [
+      f("visitors", "Visitors per month", 50000, "visitors"),
+      f("pages", "Pages per visit", 3, "pages", 0.1),
+      f("size", "Average page weight", 2.2, "MB", 0.1),
+      f("peak", "Peak hour share of daily traffic", 10, "%"),
+    ],
+    compute: (v) => {
+      const gb = (v.visitors * v.pages * v.size) / 1024
+      const dailyGb = gb / 30
+      const peakMbps = (dailyGb * 1024 * 8 * (v.peak / 100)) / 3600
+      return [
+        num("Transfer per month (GB)", gb, true),
+        num("Transfer per month (TB)", gb / 1024),
+        num("Average per day (GB)", dailyGb),
+        num("Peak hour speed (Mbps)", peakMbps, true),
+      ]
+    },
+  },
+  "server-storage-calculator": {
+    fields: [
+      f("used", "Used today", 640, "GB"),
+      f("total", "Total capacity", 1000, "GB"),
+      f("growth", "Growth per month", 25, "GB", 0.1),
+      f("alarm", "Alarm threshold", 85, "%"),
+    ],
+    compute: (v) => {
+      if (v.total <= 0) return "Capacity must be above 0."
+      if (v.used > v.total) return "Used space cannot exceed capacity."
+      if (v.growth <= 0)
+        return [
+          pct("Used today", (v.used / v.total) * 100, true),
+          text("Time to full", "Not growing"),
+        ]
+      const limit = (v.alarm / 100) * v.total
+      const toAlarm = Math.max(0, (limit - v.used) / v.growth)
+      return [
+        pct("Used today", (v.used / v.total) * 100),
+        num("Months until the alarm level", toAlarm, true),
+        num("Months until completely full", (v.total - v.used) / v.growth, true),
+        num("Capacity needed in 12 months (GB)", v.used + v.growth * 12),
+      ]
+    },
+  },
+  "raid-capacity-calculator": {
+    note: "Enter the RAID level as a number: 0, 1, 5, 6 or 10. Hot spares are not counted.",
+    fields: [
+      f("level", "RAID level", 5, "0, 1, 5, 6 or 10"),
+      f("drives", "Number of drives", 4, "drives"),
+      f("size", "Size of each drive", 4, "TB", 0.1),
+    ],
+    compute: (v) => {
+      const n = v.drives
+      const raw = n * v.size
+      const levels: Record<number, { min: number; usable: number; tolerance: string }> = {
+        0: { min: 2, usable: n, tolerance: "None: one failed drive loses everything" },
+        1: { min: 2, usable: 1, tolerance: "All drives but one" },
+        5: { min: 3, usable: n - 1, tolerance: "1 drive" },
+        6: { min: 4, usable: n - 2, tolerance: "2 drives" },
+        10: { min: 4, usable: n / 2, tolerance: "1 per mirrored pair" },
+      }
+      const l = levels[v.level]
+      if (!l) return "RAID level must be 0, 1, 5, 6 or 10."
+      if (n < l.min) return `RAID ${v.level} needs at least ${l.min} drives.`
+      if (v.level === 10 && n % 2 !== 0) return "RAID 10 needs an even number of drives."
+      const usable = l.usable * v.size
+      return [
+        num("Usable capacity (TB)", usable, true),
+        num("Raw capacity (TB)", raw),
+        pct("Space efficiency", (usable / raw) * 100),
+        text("Failures survived", l.tolerance, true),
+      ]
+    },
+  },
+  "swap-size-calculator": {
+    note: "Rule of thumb used by common distributions. A fast SSD with plenty of RAM needs far less swap than a busy small server.",
+    fields: [
+      f("ram", "Installed RAM", 8, "GB", 0.5),
+      f("hibernate", "Needs hibernation? (1 = yes, 0 = no)", 0, "0 or 1"),
+    ],
+    compute: (v) => {
+      if (v.ram <= 0) return "RAM must be above 0."
+      const base =
+        v.ram <= 2 ? v.ram * 2 : v.ram <= 8 ? v.ram : v.ram <= 64 ? Math.max(4, v.ram / 2) : 4
+      const swap = v.hibernate >= 1 ? v.ram + Math.sqrt(v.ram) : base
+      return [
+        num("Recommended swap (GB)", Math.round(swap * 10) / 10, true),
+        num("Total virtual memory (GB)", v.ram + swap),
+        text("Suggested swappiness", v.ram >= 16 ? "10 (prefer RAM)" : "30 to 60", true),
+      ]
+    },
+  },
+  "php-worker-calculator": {
+    fields: [
+      f("ram", "RAM available for PHP", 4, "GB", 0.5),
+      f("perWorker", "Memory per PHP worker", 60, "MB"),
+      f("cores", "CPU cores", 4, "cores"),
+      f("reqMs", "Average request time", 150, "ms"),
+      f("rps", "Peak requests per second", 25, "requests"),
+    ],
+    compute: (v) => {
+      if (v.perWorker <= 0 || v.reqMs <= 0) return "Worker memory and request time must be above 0."
+      const byRam = Math.floor((v.ram * 1024) / v.perWorker)
+      const needed = Math.ceil((v.rps * v.reqMs) / 1000)
+      return [
+        num("Workers the RAM allows", byRam),
+        num("Workers the traffic needs", needed),
+        num(
+          "Suggested pm.max_children",
+          Math.max(1, Math.min(byRam, Math.max(needed * 2, v.cores * 4))),
+          true
+        ),
+        text(
+          "Status",
+          needed > byRam
+            ? "RAM is the limit: add memory or reduce per-worker use"
+            : "RAM covers peak traffic",
+          true
+        ),
+      ]
+    },
+  },
+  "mysql-ram-calculator": {
+    fields: [
+      f("pool", "InnoDB buffer pool", 2, "GB", 0.25),
+      f("globals", "Other global buffers (log, key, query cache)", 256, "MB"),
+      f("conns", "max_connections", 150, "connections"),
+      f("perConn", "Memory per connection (sort, join, read, thread)", 4, "MB", 0.5),
+      f("active", "Share of connections busy at once", 30, "%"),
+    ],
+    compute: (v) => {
+      const peak = v.pool * 1024 + v.globals + v.conns * v.perConn
+      const typical = v.pool * 1024 + v.globals + v.conns * (v.active / 100) * v.perConn
+      return [
+        num("Worst case memory (GB)", peak / 1024, true),
+        num("Typical memory (GB)", typical / 1024, true),
+        num("Memory only from connections (GB)", (v.conns * v.perConn) / 1024),
+        text("Rule of thumb", "Keep worst case under 80% of server RAM"),
+      ]
+    },
+  },
+  "redis-ram-calculator": {
+    fields: [
+      f("keys", "Number of keys", 1000000, "keys"),
+      f("keyBytes", "Average key size", 40, "bytes"),
+      f("valueBytes", "Average value size", 300, "bytes"),
+      f("overhead", "Redis overhead per key", 64, "bytes"),
+      f("replicas", "Replicas", 1, "copies"),
+      f("frag", "Fragmentation factor", 1.3, "x", 0.05),
+    ],
+    compute: (v) => {
+      const per = v.keyBytes + v.valueBytes + v.overhead
+      const oneCopy = (v.keys * per * v.frag) / 1024 ** 3
+      return [
+        num("Memory for one instance (GB)", oneCopy, true),
+        num("Memory including replicas (GB)", oneCopy * (1 + v.replicas), true),
+        num("Bytes per key all in", per),
+        text("Advice", "Set maxmemory about 10% below the server limit"),
+      ]
+    },
+  },
+  "server-ram-allocation-calculator": {
+    fields: [
+      f("total", "Server RAM", 32, "GB"),
+      f("os", "Operating system and services", 8, "%"),
+      f("db", "Database", 35, "%"),
+      f("php", "PHP and web server", 40, "%"),
+      f("cache", "Cache (Redis, OPcache)", 12, "%"),
+    ],
+    compute: (v) => {
+      const used = v.os + v.db + v.php + v.cache
+      if (used > 100) return `Shares add up to ${used}%: reduce them to 100% or less.`
+      const gb = (p: number) => (v.total * p) / 100
+      return [
+        num("Operating system (GB)", gb(v.os)),
+        num("Database (GB)", gb(v.db)),
+        num("PHP and web server (GB)", gb(v.php)),
+        num("Cache (GB)", gb(v.cache)),
+        num("Unallocated (GB)", gb(100 - used), true),
+      ]
+    },
+  },
+  "disk-usage-calculator": {
+    fields: [
+      f("sites", "Website files", 220, "GB"),
+      f("mail", "Mail", 60, "GB"),
+      f("db", "Databases", 80, "GB"),
+      f("logs", "Logs", 25, "GB"),
+      f("backups", "Local backups", 180, "GB"),
+      f("other", "Everything else", 30, "GB"),
+      f("total", "Disk size", 1000, "GB"),
+    ],
+    compute: (v) => {
+      const used = v.sites + v.mail + v.db + v.logs + v.backups + v.other
+      if (v.total <= 0) return "Disk size must be above 0."
+      if (used > v.total) return `The parts add up to ${used} GB, more than the ${v.total} GB disk.`
+      const biggest = Math.max(v.sites, v.mail, v.db, v.logs, v.backups, v.other)
+      const name =
+        biggest === v.sites
+          ? "Website files"
+          : biggest === v.backups
+            ? "Local backups"
+            : biggest === v.db
+              ? "Databases"
+              : biggest === v.mail
+                ? "Mail"
+                : biggest === v.logs
+                  ? "Logs"
+                  : "Other"
+      return [
+        num("Used (GB)", used),
+        num("Free (GB)", v.total - used, true),
+        pct("Used", (used / v.total) * 100, true),
+        text("Largest consumer", name),
+        pct("Backups share of used space", used > 0 ? (v.backups / used) * 100 : 0),
+      ]
+    },
+  },
+  "inode-usage-calculator": {
+    note: "Default ext4 creates one inode per 16 KB of disk. Check the real value with df -i.",
+    fields: [
+      f("disk", "Filesystem size", 500, "GB"),
+      f("ratio", "Bytes per inode", 16384, "bytes"),
+      f("accounts", "Hosting accounts", 100, "accounts"),
+      f("files", "Average files per account", 40000, "files"),
+    ],
+    compute: (v) => {
+      if (v.ratio <= 0) return "Bytes per inode must be above 0."
+      if (v.accounts < 1) return "Enter at least one account."
+      const total = (v.disk * 1024 ** 3) / v.ratio
+      const used = v.accounts * v.files
+      return [
+        num("Total inodes", total),
+        num("Inodes used", used),
+        pct("Inode usage", (used / total) * 100, true),
+        num("Fair inode limit per account", Math.floor((total * 0.8) / v.accounts), true),
+      ]
+    },
+  },
+  "backup-rotation-calculator": {
+    note: "Grandfather-father-son rotation: daily, weekly, monthly and yearly full copies, with optional deduplication.",
+    fields: [
+      f("size", "Size of one full backup", 80, "GB"),
+      f("daily", "Daily copies kept", 7, "copies"),
+      f("weekly", "Weekly copies kept", 4, "copies"),
+      f("monthly", "Monthly copies kept", 12, "copies"),
+      f("yearly", "Yearly copies kept", 1, "copies"),
+      f("dedupe", "Space saved by compression and dedup", 40, "%"),
+    ],
+    compute: (v) => {
+      if (v.dedupe >= 100) return "Savings must be below 100%."
+      const copies = v.daily + v.weekly + v.monthly + v.yearly
+      const stored = copies * v.size * (1 - v.dedupe / 100)
+      return [
+        num("Restore points kept", copies),
+        num("Storage needed (GB)", stored, true),
+        num("Storage needed (TB)", stored / 1024),
+        text(
+          "Furthest restore point",
+          v.yearly > 0 ? `${v.yearly} year(s) back` : `${v.monthly} month(s) back`
+        ),
+      ]
+    },
+  },
+  "backup-bandwidth-calculator": {
+    fields: [
+      f("data", "Data to back up", 500, "GB"),
+      f("change", "Daily change", 3, "%", 0.1),
+      f("window", "Backup window", 6, "hours", 0.5),
+      f("link", "Link speed available", 200, "Mbps"),
+      f("eff", "Real-world efficiency", 75, "%"),
+    ],
+    compute: (v) => {
+      if (v.window <= 0 || v.link <= 0 || v.eff <= 0)
+        return "Window, link and efficiency must be above 0."
+      const need = (gb: number) => (gb * 8000) / (v.window * 3600)
+      const usable = v.link * (v.eff / 100)
+      const fullH = (v.data * 8000) / usable / 3600
+      const incGb = v.data * (v.change / 100)
+      const incH = (incGb * 8000) / usable / 3600
+      return [
+        num("Speed needed for a full backup (Mbps)", need(v.data), true),
+        num("Speed needed for an incremental (Mbps)", need(incGb)),
+        num("Full backup takes (hours)", fullH),
+        num("Incremental takes (hours)", incH),
+        text(
+          "Fits the window",
+          fullH <= v.window
+            ? "Yes, even a full backup"
+            : incH <= v.window
+              ? "Only incrementals"
+              : "No: add bandwidth",
+          true
+        ),
+      ]
+    },
+  },
   "domain-cost-calculator": {
     note: "Registration is often discounted for the first year; the renewal price is what you pay every year after.",
     fields: [
