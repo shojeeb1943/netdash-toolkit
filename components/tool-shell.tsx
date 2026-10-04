@@ -21,6 +21,7 @@ import {
 import { rememberToolVisit } from "@/components/command-palette"
 import { loadTool } from "@/lib/tool-loaders"
 import { LbCta } from "@/components/lb-chrome"
+import { faqsFor } from "@/lib/tool-faqs"
 
 const RELATED_MAX = 6
 
@@ -99,6 +100,7 @@ function RelatedTools({ tool }: { tool: ToolDefinition }) {
 // crawlable copy that restates the registry entry: what the tool does, and the privacy line the card already shows
 function AboutTool({ tool }: { tool: ToolDefinition }) {
   const offline = isOffline(tool)
+  const faqs = faqsFor(tool.slug)
   return (
     <section aria-labelledby="about-tool" className="border-border border-t pt-6">
       <h2 id="about-tool" className="text-sm font-semibold">
@@ -115,6 +117,17 @@ function AboutTool({ tool }: { tool: ToolDefinition }) {
           <li key={feature}>{feature}</li>
         ))}
       </ul>
+      {faqs.length > 0 && (
+        <div className="mt-4 max-w-3xl space-y-2">
+          <h3 className="text-sm font-semibold">Frequently asked questions</h3>
+          {faqs.map((faq) => (
+            <details key={faq.q} className="border-border rounded-md border px-3 py-2 text-sm">
+              <summary className="cursor-pointer font-medium">{faq.q}</summary>
+              <p className="text-muted-foreground mt-2 leading-relaxed">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

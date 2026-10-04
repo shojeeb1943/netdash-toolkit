@@ -38,7 +38,12 @@ const num = (label: string, value: number, strong = false): CalcOutput => ({
   kind: "number",
   strong,
 })
-const pct = (label: string, value: number): CalcOutput => ({ label, value, kind: "percent" })
+const pct = (label: string, value: number, strong = false): CalcOutput => ({
+  label,
+  value,
+  kind: "percent",
+  strong,
+})
 const text = (label: string, value: string, strong = false): CalcOutput => ({
   label,
   value,
@@ -323,6 +328,463 @@ export const calcDefs: Record<string, CalcDef> = {
     },
   },
 
+  "dedicated-server-cost-calculator": {
+    note: "Enter what the provider charges. Add every recurring line so the monthly figure matches the invoice.",
+    fields: [
+      f("rent", "Server rent", 120, "USD / month", 0.01),
+      f("setup", "One-time setup fee", 0, "USD", 0.01),
+      f("ips", "Extra IP addresses", 4, "IPs"),
+      f("ipCost", "Price per extra IP", 2, "USD / month", 0.01),
+      f("license", "Control panel and OS licences", 25, "USD / month", 0.01),
+      f("backup", "Backup storage", 10, "USD / month", 0.01),
+      f("years", "Contract length", 1, "years"),
+    ],
+    compute: (v) => {
+      if (v.years < 1) return "Contract length must be at least 1 year."
+      const monthly = v.rent + v.ips * v.ipCost + v.license + v.backup
+      return [
+        money("Monthly cost", monthly, true),
+        money("Cost over the contract", monthly * 12 * v.years + v.setup, true),
+        money("Average per month incl. setup", (monthly * 12 * v.years + v.setup) / (12 * v.years)),
+        money("Yearly cost", monthly * 12),
+      ]
+    },
+  },
+  "reseller-hosting-cost-calculator": {
+    fields: [
+      f("plan", "Reseller plan cost", 30, "USD / month", 0.01),
+      f("accounts", "Accounts you will host", 40, "accounts"),
+      f("billing", "Billing and tools", 15, "USD / month", 0.01),
+      f("retail", "Retail price per account", 5, "USD / month", 0.01),
+      f("fee", "Payment processor fee", 3, "% of revenue", 0.1),
+    ],
+    compute: (v) => {
+      if (v.accounts < 1) return "Enter at least one account."
+      const cost = v.plan + v.billing
+      const revenue = v.retail * v.accounts
+      const profit = revenue * (1 - v.fee / 100) - cost
+      const perAccountNet = v.retail * (1 - v.fee / 100)
+      return [
+        money("Cost per account / month", cost / v.accounts),
+        money("Monthly profit", profit, true),
+        revenue > 0 ? pct("Profit margin", (profit / revenue) * 100) : text("Profit margin", "n/a"),
+        perAccountNet > 0
+          ? num("Accounts to break even", Math.ceil(cost / perAccountNet), true)
+          : text("Accounts to break even", "Price must be above 0"),
+      ]
+    },
+  },
+  "vps-profit-calculator": {
+    fields: [
+      f("nodeCost", "Node cost", 300, "USD / month"),
+      f("capacity", "VPS plans a node holds", 30, "VPS"),
+      f("sold", "VPS sold per node", 24, "VPS"),
+      f("price", "Average price per VPS", 18, "USD / month", 0.01),
+      f("support", "Support and software per VPS", 2, "USD / month", 0.01),
+    ],
+    compute: (v) => {
+      if (v.capacity < 1) return "A node must hold at least one VPS."
+      if (v.sold > v.capacity) return "You cannot sell more VPS than the node holds."
+      const revenue = v.sold * v.price
+      const cost = v.nodeCost + v.sold * v.support
+      const profit = revenue - cost
+      return [
+        money("Revenue per node / month", revenue),
+        money("Profit per node / month", profit, true),
+        revenue > 0 ? pct("Margin", (profit / revenue) * 100) : text("Margin", "n/a"),
+        pct("Node filled", (v.sold / v.capacity) * 100),
+        money("Annual profit per node", profit * 12),
+      ]
+    },
+  },
+  "server-break-even-calculator": {
+    fields: [
+      f("server", "Server cost", 150, "USD / month"),
+      f("capacity", "Accounts the server can hold", 100, "accounts"),
+      f("price", "Price per account", 6, "USD / month", 0.01),
+      f("variable", "Extra cost per account", 0.5, "USD / month", 0.01),
+    ],
+    compute: (v) => {
+      const margin = v.price - v.variable
+      if (margin <= 0) return "Price must be higher than the extra cost per account."
+      const accounts = Math.ceil(v.server / margin)
+      return [
+        num("Accounts to break even", accounts, true),
+        v.capacity > 0
+          ? pct("Share of capacity needed", (accounts / v.capacity) * 100)
+          : text("Share of capacity needed", "Enter a capacity"),
+        money("Revenue at break-even", accounts * v.price),
+        accounts > v.capacity
+          ? text("Verdict", "Not reachable on this server", true)
+          : text("Verdict", "Reachable within capacity", true),
+      ]
+    },
+  },
+  "hosting-discount-calculator": {
+    fields: [
+      f("price", "List price", 10, "USD / month", 0.01),
+      f("discount", "Discount", 25, "%", 0.1),
+      f("months", "Discount applies for", 12, "months"),
+      f("term", "Total term", 24, "months"),
+    ],
+    compute: (v) => {
+      if (v.discount > 100) return "A discount cannot exceed 100%."
+      if (v.months > v.term) return "The discount period cannot be longer than the term."
+      const cheap = v.price * (1 - v.discount / 100)
+      const total = cheap * v.months + v.price * (v.term - v.months)
+      return [
+        money("Discounted monthly price", cheap, true),
+        money("Total over the term", total, true),
+        money("You save", v.price * v.term - total),
+        v.term > 0
+          ? money("Effective price per month", total / v.term)
+          : text("Effective price per month", "n/a"),
+      ]
+    },
+  },
+  "monthly-to-annual-hosting-calculator": {
+    fields: [
+      f("monthly", "Monthly price", 8, "USD / month", 0.01),
+      f("paid", "Months charged for a year", 10, "months"),
+    ],
+    compute: (v) => {
+      if (v.paid > 12) return "A yearly plan cannot charge for more than 12 months."
+      const annual = v.monthly * v.paid
+      return [
+        money("Yearly plan price", annual, true),
+        money("Effective monthly price", annual / 12),
+        money("Saving vs paying monthly", v.monthly * 12 - annual),
+        v.monthly > 0
+          ? pct("Effective discount", (1 - annual / (v.monthly * 12)) * 100)
+          : text("Effective discount", "n/a"),
+      ]
+    },
+  },
+  "hosting-revenue-calculator": {
+    fields: [
+      f("c1", "Starter customers", 60, "customers"),
+      f("p1", "Starter price", 4, "USD / month", 0.01),
+      f("c2", "Business customers", 25, "customers"),
+      f("p2", "Business price", 12, "USD / month", 0.01),
+      f("c3", "Premium customers", 8, "customers"),
+      f("p3", "Premium price", 30, "USD / month", 0.01),
+      f("addons", "Add-on revenue (SSL, backups, domains)", 90, "USD / month", 0.01),
+    ],
+    compute: (v) => {
+      const customers = v.c1 + v.c2 + v.c3
+      if (customers < 1) return "Enter at least one customer."
+      const monthly = v.c1 * v.p1 + v.c2 * v.p2 + v.c3 * v.p3 + v.addons
+      return [
+        money("Monthly revenue", monthly, true),
+        money("Annual revenue", monthly * 12, true),
+        money("Average revenue per customer", monthly / customers),
+        num("Total customers", customers),
+      ]
+    },
+  },
+  "hosting-mrr-calculator": {
+    note: "MRR is monthly recurring revenue. Enter this month's movements to see where it ended.",
+    fields: [
+      f("start", "MRR at the start of the month", 4000, "USD", 0.01),
+      f("newMrr", "New customers MRR", 600, "USD", 0.01),
+      f("expansion", "Upgrades and add-ons", 150, "USD", 0.01),
+      f("contraction", "Downgrades", 50, "USD", 0.01),
+      f("churned", "Cancelled customers MRR", 200, "USD", 0.01),
+    ],
+    compute: (v) => {
+      const net = v.newMrr + v.expansion - v.contraction - v.churned
+      return [
+        money("Ending MRR", v.start + net, true),
+        money("Net new MRR", net, true),
+        v.start > 0 ? pct("Monthly growth", (net / v.start) * 100) : text("Monthly growth", "n/a"),
+        v.start > 0
+          ? pct("Gross MRR churn", (v.churned / v.start) * 100)
+          : text("Gross MRR churn", "n/a"),
+      ]
+    },
+  },
+  "hosting-arr-calculator": {
+    fields: [
+      f("monthly", "Monthly-billed MRR", 3500, "USD", 0.01),
+      f("annualPlans", "Customers on yearly plans", 40, "customers"),
+      f("annualPrice", "Average yearly plan price", 90, "USD / year", 0.01),
+    ],
+    compute: (v) => {
+      const annualBook = v.annualPlans * v.annualPrice
+      const arr = v.monthly * 12 + annualBook
+      return [
+        money("ARR", arr, true),
+        money("Equivalent MRR", arr / 12, true),
+        arr > 0
+          ? pct("Share from yearly plans", (annualBook / arr) * 100)
+          : text("Share from yearly plans", "n/a"),
+      ]
+    },
+  },
+  "customer-churn-calculator": {
+    fields: [
+      f("start", "Customers at the start", 500, "customers"),
+      f("lost", "Customers lost", 15, "customers"),
+      f("added", "New customers", 40, "customers"),
+    ],
+    compute: (v) => {
+      if (v.start < 1) return "Enter the customers you started with."
+      if (v.lost > v.start) return "You cannot lose more customers than you started with."
+      const churn = v.lost / v.start
+      return [
+        pct("Churn rate", churn * 100, true),
+        pct("Retention rate", (1 - churn) * 100),
+        churn > 0
+          ? num("Average customer lifetime (months)", 1 / churn)
+          : text("Average customer lifetime (months)", "No churn yet"),
+        pct("Yearly churn if this repeats", (1 - Math.pow(1 - churn, 12)) * 100),
+        num("Ending customers", v.start - v.lost + v.added),
+      ]
+    },
+  },
+  "hosting-ltv-calculator": {
+    fields: [
+      f("arpu", "Average revenue per customer", 9, "USD / month", 0.01),
+      f("margin", "Gross margin", 70, "%", 0.1),
+      f("churn", "Monthly churn", 3, "%", 0.1),
+    ],
+    compute: (v) => {
+      if (v.churn <= 0) return "Churn must be above 0%, or lifetime value is unbounded."
+      if (v.margin > 100) return "Gross margin cannot exceed 100%."
+      const life = 100 / v.churn
+      return [
+        money("Customer lifetime value", v.arpu * (v.margin / 100) * life, true),
+        num("Average lifetime (months)", life),
+        money("Revenue over lifetime", v.arpu * life),
+      ]
+    },
+  },
+  "cac-calculator": {
+    fields: [
+      f("marketing", "Marketing spend", 800, "USD", 0.01),
+      f("sales", "Sales and onboarding cost", 200, "USD", 0.01),
+      f("customers", "New customers won", 40, "customers"),
+      f("arpu", "Average revenue per customer", 9, "USD / month", 0.01),
+      f("margin", "Gross margin", 70, "%", 0.1),
+    ],
+    compute: (v) => {
+      if (v.customers < 1) return "Enter at least one new customer."
+      const cac = (v.marketing + v.sales) / v.customers
+      const monthlyProfit = v.arpu * (v.margin / 100)
+      return [
+        money("Customer acquisition cost", cac, true),
+        monthlyProfit > 0
+          ? num("Payback period (months)", cac / monthlyProfit, true)
+          : text("Payback period (months)", "Margin must be above 0"),
+        money("Profit per customer / month", monthlyProfit),
+      ]
+    },
+  },
+  "hosting-ltv-cac-calculator": {
+    note: "A ratio of 3 or more with a payback under 12 months is a common benchmark for subscription businesses.",
+    fields: [
+      f("arpu", "Average revenue per customer", 9, "USD / month", 0.01),
+      f("margin", "Gross margin", 70, "%", 0.1),
+      f("churn", "Monthly churn", 3, "%", 0.1),
+      f("cac", "Customer acquisition cost", 25, "USD", 0.01),
+    ],
+    compute: (v) => {
+      if (v.churn <= 0) return "Churn must be above 0%."
+      if (v.cac <= 0) return "CAC must be above 0."
+      const ltv = (v.arpu * (v.margin / 100)) / (v.churn / 100)
+      const ratio = ltv / v.cac
+      const payback = v.cac / (v.arpu * (v.margin / 100))
+      return [
+        money("Lifetime value", ltv),
+        num("LTV : CAC ratio", ratio, true),
+        num("Payback (months)", payback),
+        text(
+          "Verdict",
+          ratio >= 3
+            ? "Healthy"
+            : ratio >= 1
+              ? "Thin: lower CAC or churn"
+              : "Losing money per customer",
+          true
+        ),
+      ]
+    },
+  },
+  "hosting-markup-calculator": {
+    fields: [f("cost", "Your cost", 4, "USD / month", 0.01), f("markup", "Markup", 100, "%", 0.1)],
+    compute: (v) => {
+      const price = v.cost * (1 + v.markup / 100)
+      return [
+        money("Selling price", price, true),
+        money("Profit", price - v.cost),
+        price > 0 ? pct("Margin", ((price - v.cost) / price) * 100) : text("Margin", "n/a"),
+      ]
+    },
+  },
+  "hosting-profit-margin-calculator": {
+    fields: [
+      f("revenue", "Revenue", 6000, "USD / month", 0.01),
+      f("cogs", "Direct costs (servers, licences)", 2400, "USD / month", 0.01),
+      f("opex", "Other expenses (staff, tools, marketing)", 1800, "USD / month", 0.01),
+    ],
+    compute: (v) => {
+      if (v.revenue <= 0) return "Revenue must be above 0."
+      const gross = v.revenue - v.cogs
+      const net = gross - v.opex
+      return [
+        money("Gross profit", gross),
+        pct("Gross margin", (gross / v.revenue) * 100, true),
+        money("Net profit", net, true),
+        pct("Net margin", (net / v.revenue) * 100),
+      ]
+    },
+  },
+  "hosting-business-roi-calculator": {
+    fields: [
+      f("invest", "Initial investment", 5000, "USD", 0.01),
+      f("revenue", "Monthly revenue", 1800, "USD", 0.01),
+      f("cost", "Monthly running cost", 900, "USD", 0.01),
+      f("months", "Period", 24, "months"),
+    ],
+    compute: (v) => {
+      if (v.invest <= 0) return "Investment must be above 0."
+      const monthly = v.revenue - v.cost
+      const profit = monthly * v.months - v.invest
+      return [
+        pct("Return on investment", (profit / v.invest) * 100, true),
+        money("Net profit over the period", profit, true),
+        monthly > 0
+          ? num("Payback (months)", v.invest / monthly)
+          : text("Payback (months)", "Never at this monthly profit"),
+      ]
+    },
+  },
+  "server-roi-calculator": {
+    fields: [
+      f("price", "Server purchase price", 3200, "USD", 0.01),
+      f("colo", "Colocation cost", 90, "USD / month", 0.01),
+      f("revenue", "Revenue the server earns", 520, "USD / month", 0.01),
+      f("years", "Years in service", 4, "years"),
+      f("resale", "Resale value at the end", 400, "USD", 0.01),
+    ],
+    compute: (v) => {
+      if (v.price <= 0 || v.years < 1) return "Enter a price and at least 1 year."
+      const months = v.years * 12
+      const profit = (v.revenue - v.colo) * months + v.resale - v.price
+      const monthly = v.revenue - v.colo
+      return [
+        money("Net profit over its life", profit, true),
+        pct("Return on investment", (profit / v.price) * 100, true),
+        monthly > 0
+          ? num("Payback (months)", v.price / monthly)
+          : text("Payback (months)", "Never at this revenue"),
+      ]
+    },
+  },
+  "server-utilization-calculator": {
+    fields: [
+      f("cpuUsed", "CPU used", 9, "cores"),
+      f("cpuTotal", "CPU total", 16, "cores"),
+      f("ramUsed", "RAM used", 42, "GB"),
+      f("ramTotal", "RAM total", 64, "GB"),
+      f("diskUsed", "Disk used", 640, "GB"),
+      f("diskTotal", "Disk total", 1000, "GB"),
+    ],
+    compute: (v) => {
+      if (v.cpuTotal <= 0 || v.ramTotal <= 0 || v.diskTotal <= 0) return "Totals must be above 0."
+      const cpu = (v.cpuUsed / v.cpuTotal) * 100
+      const ram = (v.ramUsed / v.ramTotal) * 100
+      const disk = (v.diskUsed / v.diskTotal) * 100
+      const max = Math.max(cpu, ram, disk)
+      return [
+        pct("CPU utilization", cpu),
+        pct("RAM utilization", ram),
+        pct("Disk utilization", disk),
+        text("Tightest resource", cpu === max ? "CPU" : ram === max ? "RAM" : "Disk", true),
+        text(
+          "Status",
+          max >= 90 ? "Add capacity now" : max >= 75 ? "Plan an upgrade" : "Healthy",
+          true
+        ),
+      ]
+    },
+  },
+  "hosting-occupancy-rate-calculator": {
+    fields: [
+      f("sold", "Accounts sold", 70, "accounts"),
+      f("capacity", "Total capacity", 100, "accounts"),
+      f("price", "Average price per account", 6, "USD / month", 0.01),
+    ],
+    compute: (v) => {
+      if (v.capacity < 1) return "Capacity must be at least 1."
+      if (v.sold > v.capacity) return "Sold accounts cannot exceed capacity."
+      return [
+        pct("Occupancy rate", (v.sold / v.capacity) * 100, true),
+        num("Empty slots", v.capacity - v.sold),
+        money("Revenue now", v.sold * v.price),
+        money("Revenue at full occupancy", v.capacity * v.price),
+        money("Unused revenue potential", (v.capacity - v.sold) * v.price, true),
+      ]
+    },
+  },
+  "reseller-pricing-calculator": {
+    fields: [
+      f("cost", "Wholesale cost per account", 1.2, "USD / month", 0.01),
+      f("support", "Support cost per account", 0.4, "USD / month", 0.01),
+      f("fee", "Payment fee", 3, "% of price", 0.1),
+      f("margin", "Target margin", 55, "%", 0.1),
+    ],
+    compute: (v) => {
+      const keep = 1 - v.margin / 100 - v.fee / 100
+      if (keep <= 0) return "Margin plus payment fee must be below 100%."
+      const price = (v.cost + v.support) / keep
+      return [
+        money("Monthly price to charge", price, true),
+        money("Yearly price (12 months)", price * 12),
+        money("Profit per account / month", price * (v.margin / 100)),
+      ]
+    },
+  },
+  "vps-pricing-calculator": {
+    fields: [
+      f("node", "Node cost", 320, "USD / month"),
+      f("count", "VPS you will fit on it", 20, "VPS"),
+      f("overhead", "Overhead per VPS (licence, support)", 1.5, "USD / month", 0.01),
+      f("margin", "Target margin", 40, "%", 0.1),
+    ],
+    compute: (v) => {
+      if (v.count < 1) return "Enter at least one VPS."
+      if (v.margin >= 100) return "Margin must be below 100%."
+      const cost = v.node / v.count + v.overhead
+      const price = cost / (1 - v.margin / 100)
+      return [
+        money("Cost per VPS", cost),
+        money("Monthly price to charge", price, true),
+        money("Profit per VPS", price - cost),
+        money("Hourly price (730 h)", price / 730),
+      ]
+    },
+  },
+  "dedicated-server-pricing-calculator": {
+    fields: [
+      f("cost", "Your cost for the server", 140, "USD / month"),
+      f("license", "Licences you include", 20, "USD / month", 0.01),
+      f("bandwidth", "Bandwidth cost", 10, "USD / month", 0.01),
+      f("support", "Support allowance", 15, "USD / month", 0.01),
+      f("margin", "Target margin", 30, "%", 0.1),
+    ],
+    compute: (v) => {
+      if (v.margin >= 100) return "Margin must be below 100%."
+      const cost = v.cost + v.license + v.bandwidth + v.support
+      const price = cost / (1 - v.margin / 100)
+      return [
+        money("Total monthly cost", cost),
+        money("Monthly price to charge", price, true),
+        money("Profit per month", price - cost),
+        money("Yearly price", price * 12),
+      ]
+    },
+  },
   "domain-cost-calculator": {
     note: "Registration is often discounted for the first year; the renewal price is what you pay every year after.",
     fields: [

@@ -3,6 +3,7 @@ import { ToolShell } from "@/components/tool-shell"
 import { getToolBySlug, isOffline, tools } from "@/lib/tool-registry"
 import { BRAND, SITE_ORIGIN, canonical, pageTitle } from "@/lib/site"
 import { categoryLabelOf } from "@/lib/tool-registry"
+import { faqsFor } from "@/lib/tool-faqs"
 
 // static export: every tool page is enumerated at build time, so unknown slugs fail the build
 export const dynamicParams = false
@@ -86,7 +87,20 @@ export default async function ToolPage({ params }: { params: Promise<{ slug: str
                   },
                 ],
               },
-            ]).replace(/</g, "\u003c"),
+              ...(faqsFor(tool.slug).length
+                ? [
+                    {
+                      "@context": "https://schema.org",
+                      "@type": "FAQPage",
+                      mainEntity: faqsFor(tool.slug).map((f) => ({
+                        "@type": "Question",
+                        name: f.q,
+                        acceptedAnswer: { "@type": "Answer", text: f.a },
+                      })),
+                    },
+                  ]
+                : []),
+            ]).replace(/</g, "\\u003c"),
           }}
         />
       )}

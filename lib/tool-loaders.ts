@@ -274,6 +274,92 @@ export const toolLoaders: Record<string, ToolLoader> = {
     })),
   "sri-hash-generator": () =>
     import("@/components/tools/sri-hash-generator").then((m) => ({ default: m.SriHashGenerator })),
+  "dedicated-server-cost-calculator": () =>
+    import("@/components/tools/dedicated-server-cost-calculator").then((m) => ({
+      default: m.DedicatedServerCostCalculator,
+    })),
+  "reseller-hosting-cost-calculator": () =>
+    import("@/components/tools/reseller-hosting-cost-calculator").then((m) => ({
+      default: m.ResellerHostingCostCalculator,
+    })),
+  "vps-profit-calculator": () =>
+    import("@/components/tools/vps-profit-calculator").then((m) => ({
+      default: m.VpsProfitCalculator,
+    })),
+  "server-break-even-calculator": () =>
+    import("@/components/tools/server-break-even-calculator").then((m) => ({
+      default: m.ServerBreakEvenCalculator,
+    })),
+  "hosting-discount-calculator": () =>
+    import("@/components/tools/hosting-discount-calculator").then((m) => ({
+      default: m.HostingDiscountCalculator,
+    })),
+  "monthly-to-annual-hosting-calculator": () =>
+    import("@/components/tools/monthly-to-annual-hosting-calculator").then((m) => ({
+      default: m.MonthlyToAnnualHostingCalculator,
+    })),
+  "hosting-revenue-calculator": () =>
+    import("@/components/tools/hosting-revenue-calculator").then((m) => ({
+      default: m.HostingRevenueCalculator,
+    })),
+  "hosting-mrr-calculator": () =>
+    import("@/components/tools/hosting-mrr-calculator").then((m) => ({
+      default: m.HostingMrrCalculator,
+    })),
+  "hosting-arr-calculator": () =>
+    import("@/components/tools/hosting-arr-calculator").then((m) => ({
+      default: m.HostingArrCalculator,
+    })),
+  "customer-churn-calculator": () =>
+    import("@/components/tools/customer-churn-calculator").then((m) => ({
+      default: m.CustomerChurnCalculator,
+    })),
+  "hosting-ltv-calculator": () =>
+    import("@/components/tools/hosting-ltv-calculator").then((m) => ({
+      default: m.HostingLtvCalculator,
+    })),
+  "cac-calculator": () =>
+    import("@/components/tools/cac-calculator").then((m) => ({ default: m.CacCalculator })),
+  "hosting-ltv-cac-calculator": () =>
+    import("@/components/tools/hosting-ltv-cac-calculator").then((m) => ({
+      default: m.HostingLtvCacCalculator,
+    })),
+  "hosting-markup-calculator": () =>
+    import("@/components/tools/hosting-markup-calculator").then((m) => ({
+      default: m.HostingMarkupCalculator,
+    })),
+  "hosting-profit-margin-calculator": () =>
+    import("@/components/tools/hosting-profit-margin-calculator").then((m) => ({
+      default: m.HostingProfitMarginCalculator,
+    })),
+  "hosting-business-roi-calculator": () =>
+    import("@/components/tools/hosting-business-roi-calculator").then((m) => ({
+      default: m.HostingBusinessRoiCalculator,
+    })),
+  "server-roi-calculator": () =>
+    import("@/components/tools/server-roi-calculator").then((m) => ({
+      default: m.ServerRoiCalculator,
+    })),
+  "server-utilization-calculator": () =>
+    import("@/components/tools/server-utilization-calculator").then((m) => ({
+      default: m.ServerUtilizationCalculator,
+    })),
+  "hosting-occupancy-rate-calculator": () =>
+    import("@/components/tools/hosting-occupancy-rate-calculator").then((m) => ({
+      default: m.HostingOccupancyRateCalculator,
+    })),
+  "reseller-pricing-calculator": () =>
+    import("@/components/tools/reseller-pricing-calculator").then((m) => ({
+      default: m.ResellerPricingCalculator,
+    })),
+  "vps-pricing-calculator": () =>
+    import("@/components/tools/vps-pricing-calculator").then((m) => ({
+      default: m.VpsPricingCalculator,
+    })),
+  "dedicated-server-pricing-calculator": () =>
+    import("@/components/tools/dedicated-server-pricing-calculator").then((m) => ({
+      default: m.DedicatedServerPricingCalculator,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {
