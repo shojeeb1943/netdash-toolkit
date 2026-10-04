@@ -132,6 +132,13 @@ import {
   Replace,
   Terminal,
   TextSearch,
+  Dices,
+  FileCheck,
+  Fingerprint,
+  Minimize2,
+  Paintbrush,
+  ShieldPlus,
+  Waypoints,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -149,6 +156,7 @@ export type ToolCategory =
   | "seo"
   | "server-planning"
   | "email"
+  | "http"
 
 export type ProjectItemType =
   | "subnet"
@@ -306,6 +314,12 @@ export const categories: CategoryDefinition[] = [
     label: "Email",
     icon: Mail,
     description: "Email address, signature, size and reference tools",
+  },
+  {
+    id: "http",
+    label: "HTTP & Headers",
+    icon: Waypoints,
+    description: "Status codes, MIME types and response header generators",
   },
 ]
 
@@ -2443,6 +2457,233 @@ export const tools: ToolDefinition[] = [
     category: "linux",
     features: ["Resolves . and ..", "Removes //", "Escape warning"],
     keywords: ["path normalize", "dot dot", "realpath", "linux", "traversal"],
+  },
+  // === dev-http ===
+  {
+    slug: "html-formatter",
+    label: "HTML Formatter",
+    title: "HTML Formatter",
+    description:
+      "Indent and tidy HTML so tags line up, keeping script, style and pre blocks exactly as written",
+    icon: FileCode,
+    category: "devtools",
+    features: ["Indented tags", "Raw blocks kept", "2 or 4 spaces"],
+    keywords: ["html", "format", "beautify", "indent", "prettify"],
+  },
+  {
+    slug: "html-minifier",
+    label: "HTML Minifier",
+    title: "HTML Minifier",
+    description:
+      "Shrink HTML by removing comments and extra whitespace while protecting pre, textarea, script and style",
+    icon: Minimize2,
+    category: "devtools",
+    features: ["Strips comments", "Collapses whitespace", "Protected blocks"],
+    keywords: ["html", "minify", "compress", "whitespace", "page speed"],
+  },
+  {
+    slug: "css-minifier",
+    label: "CSS Minifier",
+    title: "CSS Minifier",
+    description:
+      "Minify CSS by removing comments, whitespace and the last semicolon in each rule, keeping strings and urls safe",
+    icon: Paintbrush,
+    category: "devtools",
+    features: ["Comments removed", "Strings preserved", "Licence comments kept"],
+    keywords: ["css", "minify", "compress", "stylesheet", "page speed"],
+  },
+  {
+    slug: "sql-minifier",
+    label: "SQL Minifier",
+    title: "SQL Minifier",
+    description:
+      "Remove comments and extra whitespace from SQL while leaving quoted strings and identifiers untouched",
+    icon: Database,
+    category: "devtools",
+    features: ["Comments stripped", "Strings protected", "Compact output"],
+    keywords: ["sql", "minify", "compress", "query", "whitespace"],
+  },
+  {
+    slug: "markdown-preview",
+    label: "Markdown Preview",
+    title: "Markdown Preview",
+    description:
+      "Write Markdown and see headings, lists, tables, code and links rendered live without anything leaving your browser",
+    icon: FileText,
+    category: "devtools",
+    features: ["Live preview", "Tables and code", "Safe rendering"],
+    keywords: ["markdown", "preview", "md", "readme", "editor"],
+  },
+  {
+    slug: "markdown-table-generator",
+    label: "Markdown Table Generator",
+    title: "Markdown Table Generator",
+    description:
+      "Turn pasted rows from a spreadsheet or CSV into an aligned Markdown table with per-column alignment",
+    icon: Table,
+    category: "devtools",
+    features: ["From CSV or tabs", "Alignment", "Pipes escaped"],
+    keywords: ["markdown table", "table", "csv", "spreadsheet", "readme"],
+  },
+  {
+    slug: "uuid-bulk-generator",
+    label: "UUID Bulk Generator",
+    title: "UUID Bulk Generator",
+    description:
+      "Generate up to 1000 UUIDs at once, version 4 random or version 7 time ordered, in the format you need",
+    icon: Fingerprint,
+    category: "devtools",
+    features: ["v4 and v7", "Up to 1000", "Format options"],
+    keywords: ["uuid", "guid", "bulk", "identifier", "generator"],
+  },
+  {
+    slug: "nanoid-generator",
+    label: "NanoID Generator",
+    title: "NanoID Generator",
+    description:
+      "Generate compact random IDs in the NanoID style with a URL safe, hex or custom alphabet and a set length",
+    icon: Shuffle,
+    category: "devtools",
+    features: ["Six alphabets", "Length 1 to 128", "Bits of randomness"],
+    keywords: ["nanoid", "id", "random id", "short id", "generator"],
+  },
+  {
+    slug: "random-string-generator",
+    label: "Random String Generator",
+    title: "Random String Generator",
+    description:
+      "Create random strings of any length from letters, digits and symbols for tokens, test data or passwords",
+    icon: Dices,
+    category: "devtools",
+    features: ["Character sets", "No look-alikes", "Secure random"],
+    keywords: ["random string", "token", "password", "generator", "secret"],
+  },
+  {
+    slug: "user-agent-generator",
+    label: "User-Agent Generator",
+    title: "User-Agent String Generator",
+    description:
+      "Build realistic user agent strings for Chrome, Firefox, Safari, Edge, mobile browsers and common bots",
+    icon: Monitor,
+    category: "http",
+    features: ["12 clients", "Version control", "Copy ready"],
+    keywords: ["user agent", "ua string", "browser", "googlebot", "testing"],
+  },
+  {
+    slug: "http-status-reference",
+    label: "HTTP Status Reference",
+    title: "HTTP Status Code Reference",
+    description:
+      "Look up HTTP status codes by number, name or meaning, from 200 and 301 to 404, 429 and 503",
+    icon: ListOrdered,
+    category: "http",
+    features: ["Searchable", "Class filter 4xx", "Plain meanings"],
+    keywords: ["http status", "status code", "404", "301", "503"],
+  },
+  {
+    slug: "http-status-generator",
+    label: "HTTP Status Generator",
+    title: "HTTP Status Response Generator",
+    description:
+      "Generate an example HTTP response and nginx, Apache, PHP and Express code for any status code",
+    icon: ServerCog,
+    category: "http",
+    features: ["Example response", "Four server types", "Redirect targets"],
+    keywords: ["http status", "response", "nginx return", "php http_response_code", "redirect"],
+  },
+  {
+    slug: "mime-type-lookup",
+    label: "MIME Type Lookup",
+    title: "MIME Type Lookup",
+    description:
+      "Find the correct MIME type for a file extension such as webp, woff2, json or pdf, or search by type",
+    icon: FileSearch,
+    category: "http",
+    features: ["Extension to type", "Web and office files", "Searchable"],
+    keywords: ["mime type", "content type", "file extension", "webp", "woff2"],
+  },
+  {
+    slug: "mime-type-checker",
+    label: "MIME Type Checker",
+    title: "MIME Type Checker",
+    description:
+      "Check whether the Content-Type your server sends matches the file extension, and what to fix if it does not",
+    icon: FileCheck,
+    category: "http",
+    features: ["Match check", "Expected type", "nosniff warning"],
+    keywords: ["mime type", "content-type", "mismatch", "nosniff", "server config"],
+  },
+  {
+    slug: "content-type-builder",
+    label: "Content-Type Builder",
+    title: "Content-Type Header Builder",
+    description:
+      "Build a valid Content-Type header with charset or multipart boundary and ready nginx, Apache and PHP lines",
+    icon: FileType,
+    category: "http",
+    features: ["Charset or boundary", "Validated type", "Server snippets"],
+    keywords: ["content-type", "header", "charset", "multipart", "boundary"],
+  },
+  {
+    slug: "cache-control-generator",
+    label: "Cache-Control Generator",
+    title: "Cache-Control Header Generator",
+    description:
+      "Build a Cache-Control header for static files, pages or APIs with max-age, immutable and stale options",
+    icon: Gauge,
+    category: "http",
+    features: ["All directives", "Conflict warnings", "nginx and Apache"],
+    keywords: ["cache-control", "caching", "max-age", "immutable", "cdn"],
+  },
+  {
+    slug: "cors-header-generator",
+    label: "CORS Header Generator",
+    title: "CORS Header Generator",
+    description:
+      "Generate Access-Control headers for cross-origin requests with nginx, Apache and PHP code and safety checks",
+    icon: Waypoints,
+    category: "http",
+    features: ["Origin and methods", "Credentials rules", "Preflight cache"],
+    keywords: ["cors", "access-control-allow-origin", "preflight", "cross origin", "api"],
+  },
+  {
+    slug: "csp-generator",
+    label: "CSP Generator",
+    title: "Content Security Policy Generator",
+    description:
+      "Build a Content-Security-Policy header with source checks, report-only mode and warnings about risky settings",
+    icon: ShieldCheck,
+    category: "http",
+    features: ["Per-directive sources", "Report-only mode", "Risk warnings"],
+    keywords: ["csp", "content security policy", "xss", "header", "security"],
+  },
+  {
+    slug: "hsts-header-generator",
+    label: "HSTS Header Generator",
+    title: "HSTS Header Generator",
+    description:
+      "Generate a Strict-Transport-Security header with max-age, includeSubDomains and preload checks",
+    icon: Lock,
+    category: "http",
+    features: ["Preload rules", "Server code", "Safety notes"],
+    keywords: ["hsts", "strict-transport-security", "https", "preload", "header"],
+  },
+  {
+    slug: "security-header-generator",
+    label: "Security Header Generator",
+    title: "Security Header Generator",
+    description:
+      "Generate a set of security headers for nginx, Apache or PHP, including nosniff, frame, referrer and HSTS",
+    icon: ShieldPlus,
+    category: "http",
+    features: ["Seven headers", "Server formats", "Safe defaults"],
+    keywords: [
+      "security headers",
+      "x-frame-options",
+      "referrer-policy",
+      "permissions-policy",
+      "hardening",
+    ],
   },
 ]
 

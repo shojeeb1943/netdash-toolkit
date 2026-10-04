@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react"
 import type { LucideIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,6 +20,7 @@ function GeneratorTool({ slug, icon }: { slug: string; icon: LucideIcon }) {
     Object.fromEntries(def.fields.map((f) => [f.id, f.value]))
   )
   const [result, setResult] = useState<GResult>("")
+  const [nonce, setNonce] = useState(0)
 
   // build() may be async (Web Crypto); the cancelled flag drops a stale answer when typing outpaces it
   useEffect(() => {
@@ -29,7 +31,7 @@ function GeneratorTool({ slug, icon }: { slug: string; icon: LucideIcon }) {
     return () => {
       cancelled = true
     }
-  }, [def, values])
+  }, [def, values, nonce])
 
   const set = (id: string, value: string | number | boolean) =>
     setValues((v) => ({ ...v, [id]: value }))
@@ -119,7 +121,14 @@ function GeneratorTool({ slug, icon }: { slug: string; icon: LucideIcon }) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{def.outputLabel}</CardTitle>
-            {output && <CopyButton value={output} />}
+            <div className="flex items-center gap-1">
+              {def.regenerate && (
+                <Button variant="outline" size="sm" onClick={() => setNonce((x) => x + 1)}>
+                  Generate again
+                </Button>
+              )}
+              {output && <CopyButton value={output} />}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {failed ? (

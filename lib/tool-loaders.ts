@@ -620,6 +620,68 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/linux-path-normalizer").then((m) => ({
       default: m.LinuxPathNormalizer,
     })),
+  "html-formatter": () =>
+    import("@/components/tools/html-formatter").then((m) => ({ default: m.HtmlFormatter })),
+  "html-minifier": () =>
+    import("@/components/tools/html-minifier").then((m) => ({ default: m.HtmlMinifier })),
+  "css-minifier": () =>
+    import("@/components/tools/css-minifier").then((m) => ({ default: m.CssMinifier })),
+  "sql-minifier": () =>
+    import("@/components/tools/sql-minifier").then((m) => ({ default: m.SqlMinifier })),
+  "markdown-preview": () =>
+    import("@/components/tools/markdown-preview").then((m) => ({ default: m.MarkdownPreview })),
+  "markdown-table-generator": () =>
+    import("@/components/tools/markdown-table-generator").then((m) => ({
+      default: m.MarkdownTableGenerator,
+    })),
+  "uuid-bulk-generator": () =>
+    import("@/components/tools/uuid-bulk-generator").then((m) => ({
+      default: m.UuidBulkGenerator,
+    })),
+  "nanoid-generator": () =>
+    import("@/components/tools/nanoid-generator").then((m) => ({ default: m.NanoidGenerator })),
+  "random-string-generator": () =>
+    import("@/components/tools/random-string-generator").then((m) => ({
+      default: m.RandomStringGenerator,
+    })),
+  "user-agent-generator": () =>
+    import("@/components/tools/user-agent-generator").then((m) => ({
+      default: m.UserAgentGenerator,
+    })),
+  "http-status-reference": () =>
+    import("@/components/tools/http-status-reference").then((m) => ({
+      default: m.HttpStatusReference,
+    })),
+  "http-status-generator": () =>
+    import("@/components/tools/http-status-generator").then((m) => ({
+      default: m.HttpStatusGenerator,
+    })),
+  "mime-type-lookup": () =>
+    import("@/components/tools/mime-type-lookup").then((m) => ({ default: m.MimeTypeLookup })),
+  "mime-type-checker": () =>
+    import("@/components/tools/mime-type-checker").then((m) => ({ default: m.MimeTypeChecker })),
+  "content-type-builder": () =>
+    import("@/components/tools/content-type-builder").then((m) => ({
+      default: m.ContentTypeBuilder,
+    })),
+  "cache-control-generator": () =>
+    import("@/components/tools/cache-control-generator").then((m) => ({
+      default: m.CacheControlGenerator,
+    })),
+  "cors-header-generator": () =>
+    import("@/components/tools/cors-header-generator").then((m) => ({
+      default: m.CorsHeaderGenerator,
+    })),
+  "csp-generator": () =>
+    import("@/components/tools/csp-generator").then((m) => ({ default: m.CspGenerator })),
+  "hsts-header-generator": () =>
+    import("@/components/tools/hsts-header-generator").then((m) => ({
+      default: m.HstsHeaderGenerator,
+    })),
+  "security-header-generator": () =>
+    import("@/components/tools/security-header-generator").then((m) => ({
+      default: m.SecurityHeaderGenerator,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

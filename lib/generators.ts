@@ -1,6 +1,9 @@
 // form-in, text-out tools: Linux commands and configs, SEO snippets, domain helpers, small security calculators.
 // each definition is a field list plus one pure build(); nothing here touches the network.
 
+import { parseCsv } from "@/lib/csv"
+import { HTTP_STATUS, MIME_TYPES, UA_BROWSERS } from "@/lib/http-data"
+
 export type GValue = string | number | boolean
 export type GValues = Record<string, GValue>
 
@@ -29,6 +32,8 @@ export interface GDef {
   /** may be async (Web Crypto) */
   build: (v: GValues) => GResult | Promise<GResult>
   serp?: (v: GValues) => SerpPreview
+  /** random generators: show a button that builds a fresh result */
+  regenerate?: boolean
   /** link-card preview shown beside the report (text only, never loads an image) */
   card?: (v: GValues) => {
     kind: "og" | "twitter"
@@ -2578,6 +2583,563 @@ function pathAnalyzeBuild(v: GValues): GResult {
   ].join("\n")
 }
 
+// ---------- batch 7: developer and HTTP helpers ----------
+
+function randomInt(max: number): number {
+  // uniform integer in [0, max) by rejection sampling, so no modulo bias
+  const limit = Math.floor(0x100000000 / max) * max
+  const buf = new Uint32Array(1)
+  do crypto.getRandomValues(buf)
+  while (buf[0] >= limit)
+  return buf[0] % max
+}
+
+function uuidV4(): string {
+  const b2 = crypto.getRandomValues(new Uint8Array(16))
+  b2[6] = (b2[6] & 0x0f) | 0x40
+  b2[8] = (b2[8] & 0x3f) | 0x80
+  return hexUuid(b2)
+}
+
+function uuidV7(): string {
+  const b2 = crypto.getRandomValues(new Uint8Array(16))
+  const ms = Date.now()
+  for (let i = 0; i < 6; i++) b2[i] = Math.floor(ms / 2 ** (8 * (5 - i))) & 0xff
+  b2[6] = (b2[6] & 0x0f) | 0x70
+  b2[8] = (b2[8] & 0x3f) | 0x80
+  return hexUuid(b2)
+}
+
+function hexUuid(bytes: Uint8Array): string {
+  const h = Array.from(bytes, (x) => x.toString(16).padStart(2, "0")).join("")
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+
+function uuidBuild(v: GValues): GResult {
+  const count = Math.floor(n(v, "count"))
+  if (!(count >= 1 && count <= 1000)) return err("Count must be between 1 and 1000.")
+  const make = v.version === "v7" ? uuidV7 : uuidV4
+  const out: string[] = []
+  for (let i = 0; i < count; i++) {
+    let u = make()
+    if (!b(v, "hyphens")) u = u.replace(/-/g, "")
+    if (b(v, "upper")) u = u.toUpperCase()
+    if (b(v, "braces")) u = `{${u}}`
+    out.push(u)
+  }
+  if (v.version === "v7") out.sort()
+  return out.join("\n")
+}
+
+const NANO_ALPHABETS: Record<string, string> = {
+  url: "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict",
+  alnum: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  lower: "0123456789abcdefghijklmnopqrstuvwxyz",
+  hex: "0123456789abcdef",
+  numbers: "0123456789",
+  nolookalike: "6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz",
+}
+
+function nanoBuild(v: GValues): GResult {
+  const alphabet = NANO_ALPHABETS[String(v.alphabet)]
+  const length = Math.floor(n(v, "length"))
+  const count = Math.floor(n(v, "count"))
+  if (!alphabet) return err("Pick an alphabet.")
+  if (!(length >= 1 && length <= 128)) return err("Length must be between 1 and 128.")
+  if (!(count >= 1 && count <= 500)) return err("Count must be between 1 and 500.")
+  const out: string[] = []
+  for (let i = 0; i < count; i++) {
+    let id = ""
+    for (let j = 0; j < length; j++) id += alphabet[randomInt(alphabet.length)]
+    out.push(id)
+  }
+  const bits = (length * Math.log2(alphabet.length)).toFixed(1)
+  return `${out.join("\n")}\n\n~${bits} bits of randomness per id (${alphabet.length} symbols x ${length} characters)`
+}
+
+function randomStringBuild(v: GValues): GResult {
+  const length = Math.floor(n(v, "length"))
+  const count = Math.floor(n(v, "count"))
+  if (!(length >= 1 && length <= 512)) return err("Length must be between 1 and 512.")
+  if (!(count >= 1 && count <= 500)) return err("Count must be between 1 and 500.")
+  const strip = (t: string) => (b(v, "ambiguous") ? t.replace(/[0O1lI|]/g, "") : t)
+  const sets = [
+    b(v, "lower") && strip("abcdefghijklmnopqrstuvwxyz"),
+    b(v, "upper") && strip("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+    b(v, "digits") && strip("0123456789"),
+    b(v, "symbols") && "!@#$%^&*()-_=+[]{};:,.<>?",
+  ].filter(Boolean) as string[]
+  if (!sets.length) return err("Pick at least one kind of character.")
+  if (length < sets.length)
+    return err(`Length must be at least ${sets.length} to include every kind you picked.`)
+  const all = sets.join("")
+  const out: string[] = []
+  for (let i = 0; i < count; i++) {
+    const chars = sets.map((set) => set[randomInt(set.length)])
+    while (chars.length < length) chars.push(all[randomInt(all.length)])
+    for (let k = chars.length - 1; k > 0; k--) {
+      const j = randomInt(k + 1)
+      ;[chars[k], chars[j]] = [chars[j], chars[k]]
+    }
+    out.push(chars.join(""))
+  }
+  return `${out.join("\n")}\n\n~${(length * Math.log2(all.length)).toFixed(1)} bits each (${all.length} possible characters)`
+}
+
+function uaBuild(v: GValues): GResult {
+  const version = Math.floor(n(v, "version"))
+  if (!(version >= 1 && version <= 999)) return err("Version must be between 1 and 999.")
+  const pick2 = String(v.which)
+  const list = UA_BROWSERS.filter((u) => pick2 === "all" || u.id === pick2)
+  if (!list.length) return err("Pick a browser.")
+  return [
+    ...list.map((u) => (pick2 === "all" ? `${u.label}\n${u.make(version)}\n` : u.make(version))),
+    pick2 === "all" ? "" : "",
+    "For testing your own site. Servers should not decide features from the user agent alone, and pretending to be a crawler may break a site's terms.",
+  ]
+    .join("\n")
+    .trim()
+}
+
+function statusRefBuild(v: GValues): GResult {
+  const q = s(v, "query").toLowerCase()
+  const list = HTTP_STATUS.filter(
+    (x) =>
+      !q ||
+      `${x.code} ${x.name} ${x.meaning}`.toLowerCase().includes(q) ||
+      (/^\dxx$/.test(q) && String(x.code)[0] === q[0])
+  )
+  if (!list.length)
+    return err(
+      "No status code matches. Try a number, a word like redirect, or a class such as 4xx."
+    )
+  return [
+    `${list.length} status code(s)`,
+    "",
+    ...list.map((x) => `${x.code} ${x.name}\n    ${x.meaning}`),
+  ].join("\n")
+}
+
+function statusGenBuild(v: GValues): GResult {
+  const code = Number(v.code)
+  const info = HTTP_STATUS.find((x) => x.code === code)
+  if (!info) return err("Pick a status code.")
+  const redirect = [301, 302, 303, 307, 308].includes(code)
+  const target = redirect ? s(v, "location") : ""
+  if (redirect) {
+    if (!/^(https?:\/\/|\/)[^\s"'`;{}\\<>]*$/.test(target))
+      return err("A redirect needs a Location that is a full URL or a path starting with /.")
+  }
+  const bodyless = code < 200 || code === 204 || code === 304
+  const head = [
+    `HTTP/1.1 ${code} ${info.name}`,
+    ...(redirect ? [`Location: ${target}`] : []),
+    ...(code === 429 || code === 503 ? ["Retry-After: 120"] : []),
+    ...(code === 405 ? ["Allow: GET, HEAD"] : []),
+    ...(code === 401 ? ['WWW-Authenticate: Basic realm="Restricted"'] : []),
+    ...(bodyless ? [] : ["Content-Type: text/plain; charset=utf-8"]),
+  ]
+  return [
+    `${info.code} ${info.name}`,
+    info.meaning,
+    "",
+    "Example response",
+    ...head,
+    ...(bodyless ? [] : ["", info.name]),
+    "",
+    "nginx",
+    redirect ? `return ${code} ${target};` : `return ${code};`,
+    "",
+    "Apache (mod_alias)",
+    redirect ? `Redirect ${code} / ${target}` : `Redirect ${code} /`,
+    "",
+    "PHP",
+    redirect
+      ? `header('Location: ${target.replace(/'/g, "%27")}', true, ${code}); exit;`
+      : `http_response_code(${code}); exit;`,
+    "",
+    "Express (Node.js)",
+    redirect
+      ? `res.redirect(${code}, '${target.replace(/'/g, "%27")}')`
+      : `res.status(${code}).send('${info.name.replace(/'/g, "\\'")}')`,
+  ].join("\n")
+}
+
+function mimeLookupBuild(v: GValues): GResult {
+  const q = s(v, "query").toLowerCase().replace(/^\./, "")
+  const list = MIME_TYPES.filter(
+    (m) =>
+      !q ||
+      m.ext === q ||
+      m.type.includes(q) ||
+      m.note.toLowerCase().includes(q) ||
+      m.ext.includes(q)
+  )
+  if (!list.length)
+    return err("No type matches. Try an extension such as webp, or a word such as font.")
+  return [
+    `${list.length} type(s)`,
+    "",
+    ...list.map((m) => `.${m.ext.padEnd(12)} ${m.type}\n               ${m.note}`),
+  ].join("\n")
+}
+
+function mimeCheckBuild(v: GValues): GResult {
+  const file = s(v, "file")
+  const claimed = s(v, "type").toLowerCase().split(";")[0].trim()
+  const ext = file.includes(".") ? file.slice(file.lastIndexOf(".") + 1).toLowerCase() : ""
+  if (!ext) return err("Enter a file name with an extension, such as logo.svg.")
+  const known = MIME_TYPES.find((m) => m.ext === ext)
+  if (!known)
+    return err(`No entry for .${ext}. Use application/octet-stream when the type is unknown.`)
+  if (!claimed) return `Expected type for .${ext}: ${known.type}`
+  if (!/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(claimed))
+    return err("A content type looks like image/png.")
+  const same =
+    claimed === known.type ||
+    (known.type === "text/javascript" && claimed === "application/javascript")
+  return [
+    `File:      ${file}`,
+    `Claimed:   ${claimed}`,
+    `Expected:  ${known.type}`,
+    "",
+    same
+      ? "Match."
+      : `Mismatch: browsers may refuse to run or show this file. Serve .${ext} as ${known.type}.`,
+    ...(same || known.type === "application/octet-stream"
+      ? []
+      : [
+          "With X-Content-Type-Options: nosniff, a wrong type on scripts and styles blocks them completely.",
+        ]),
+  ].join("\n")
+}
+
+function contentTypeBuild(v: GValues): GResult {
+  const type = (s(v, "custom") || String(v.type)).toLowerCase()
+  if (!/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(type))
+    return err("A content type looks like text/html or application/json.")
+  const parts = [type]
+  if (type.startsWith("multipart/")) {
+    const boundary = s(v, "boundary")
+    if (!/^[A-Za-z0-9'()+_,./:=?-]{1,70}$/.test(boundary))
+      return err(
+        "Multipart needs a boundary of 1 to 70 characters, such as ----FormBoundary7MA4YWxk."
+      )
+    parts.push(`boundary=${boundary.includes(" ") ? `"${boundary}"` : boundary}`)
+  } else if (v.charset !== "none") parts.push(`charset=${v.charset}`)
+  const header = parts.join("; ")
+  const notes: string[] = []
+  if (
+    v.charset !== "none" &&
+    !type.startsWith("text/") &&
+    type !== "application/json" &&
+    !type.endsWith("+xml") &&
+    type !== "application/xml" &&
+    !type.startsWith("multipart/")
+  )
+    notes.push("A charset parameter is meaningful for text types only: binary types ignore it.")
+  if (type === "application/json" && v.charset !== "none")
+    notes.push("JSON is always UTF-8, so the charset parameter is optional.")
+  return [
+    `Content-Type: ${header}`,
+    "",
+    "nginx",
+    `add_header Content-Type "${header}";`,
+    "",
+    "Apache",
+    `Header set Content-Type "${header}"`,
+    "",
+    "PHP",
+    `header('Content-Type: ${header}');`,
+    ...(notes.length ? ["", ...notes.map((x) => `Note: ${x}`)] : []),
+  ].join("\n")
+}
+
+function cacheBuild(v: GValues): GResult {
+  const maxAge = Math.floor(n(v, "maxAge"))
+  const sMax = Math.floor(n(v, "sMaxAge"))
+  const swr = Math.floor(n(v, "swr"))
+  const sie = Math.floor(n(v, "sie"))
+  for (const x of [maxAge, sMax, swr, sie])
+    if (!(x >= 0 && Number.isFinite(x))) return err("Times must be zero or more.")
+  const d: string[] = []
+  if (b(v, "nostore")) d.push("no-store")
+  else {
+    if (v.scope !== "none") d.push(String(v.scope))
+    if (b(v, "nocache")) d.push("no-cache")
+    if (!b(v, "nocache") || maxAge > 0) d.push(`max-age=${maxAge}`)
+    if (sMax > 0) d.push(`s-maxage=${sMax}`)
+    if (b(v, "revalidate")) d.push("must-revalidate")
+    if (b(v, "immutable")) d.push("immutable")
+    if (swr > 0) d.push(`stale-while-revalidate=${swr}`)
+    if (sie > 0) d.push(`stale-if-error=${sie}`)
+  }
+  const value = d.join(", ")
+  const notes: string[] = []
+  if (b(v, "nostore"))
+    notes.push("no-store switches caching off completely: every request goes to the server.")
+  if (b(v, "immutable") && maxAge < 86400)
+    notes.push(
+      "immutable only helps with a long max-age: use it for fingerprinted files like app.3f2a1.js."
+    )
+  if (v.scope === "private" && sMax > 0)
+    notes.push("s-maxage is for shared caches and is ignored on private responses.")
+  if (maxAge > 31536000) notes.push("Values above one year (31536000) are not honoured.")
+  if (b(v, "nocache") && maxAge > 0)
+    notes.push("no-cache makes the browser revalidate before every reuse, so max-age adds little.")
+  return [
+    `Cache-Control: ${value}`,
+    "",
+    "nginx",
+    `add_header Cache-Control "${value}" always;`,
+    "",
+    "Apache",
+    `Header set Cache-Control "${value}"`,
+    "",
+    "PHP",
+    `header('Cache-Control: ${value}');`,
+    ...(notes.length ? ["", ...notes.map((x) => `Note: ${x}`)] : []),
+  ].join("\n")
+}
+
+function corsBuild(v: GValues): GResult {
+  const origin = s(v, "origin")
+  if (origin !== "*" && !/^https?:\/\/[A-Za-z0-9.-]+(:\d{1,5})?$/.test(origin))
+    return err(
+      "Origin must be * or a scheme and host such as https://app.example.com, with no path."
+    )
+  if (origin === "*" && b(v, "credentials"))
+    return err("Browsers reject * together with credentials. Name the exact origin instead.")
+  const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"].filter((m) => b(v, `m${m}`))
+  if (!methods.length) return err("Allow at least one method.")
+  const headers = s(v, "headers")
+  if (headers && !/^[A-Za-z0-9-]+(\s*,\s*[A-Za-z0-9-]+)*$/.test(headers))
+    return err("Headers are a comma separated list such as Content-Type, Authorization.")
+  const expose = s(v, "expose")
+  if (expose && !/^[A-Za-z0-9-]+(\s*,\s*[A-Za-z0-9-]+)*$/.test(expose))
+    return err("Exposed headers are a comma separated list.")
+  const maxAge = Math.floor(n(v, "maxAge"))
+  if (!(maxAge >= 0 && maxAge <= 86400)) return err("Preflight cache time is 0 to 86400 seconds.")
+  const rows: [string, string][] = [
+    ["Access-Control-Allow-Origin", origin],
+    ["Access-Control-Allow-Methods", methods.join(", ")],
+    ...(headers ? ([["Access-Control-Allow-Headers", headers]] as [string, string][]) : []),
+    ...(expose ? ([["Access-Control-Expose-Headers", expose]] as [string, string][]) : []),
+    ...(b(v, "credentials")
+      ? ([["Access-Control-Allow-Credentials", "true"]] as [string, string][])
+      : []),
+    ["Access-Control-Max-Age", String(maxAge)],
+  ]
+  return [
+    ...rows.map(([k, val]) => `${k}: ${val}`),
+    "",
+    "nginx",
+    ...rows.map(([k, val]) => `add_header ${k} "${val}" always;`),
+    "",
+    "Apache",
+    ...rows.map(([k, val]) => `Header always set ${k} "${val}"`),
+    "",
+    "PHP",
+    ...rows.map(([k, val]) => `header('${k}: ${val}');`),
+    "",
+    origin === "*"
+      ? "Note: * allows any website to read this response. Do not use it for private data."
+      : "Note: only one origin can be named. To allow several, check the Origin request header against a list and echo the match, with Vary: Origin.",
+    "Note: answer OPTIONS preflight requests with a 204 and these headers.",
+  ].join("\n")
+}
+
+const CSP_SOURCE =
+  /^('(self|none|unsafe-inline|unsafe-eval|strict-dynamic|wasm-unsafe-eval|unsafe-hashes|report-sample)'|'(nonce|sha256|sha384|sha512)-[A-Za-z0-9+/=_-]+'|[a-z][a-z0-9+.-]*:|\*|(\*\.)?[A-Za-z0-9.-]+(:(\d{1,5}|\*))?(\/[^\s;,'"]*)?|[a-z]+:\/\/(\*\.)?[A-Za-z0-9.-]+(:(\d{1,5}|\*))?(\/[^\s;,'"]*)?)$/
+
+function cspBuild(v: GValues): GResult {
+  const dirs: [string, string][] = [
+    ["default-src", "default"],
+    ["script-src", "script"],
+    ["style-src", "style"],
+    ["img-src", "img"],
+    ["font-src", "font"],
+    ["connect-src", "connect"],
+    ["frame-src", "frame"],
+    ["object-src", "object"],
+    ["base-uri", "base"],
+    ["form-action", "form"],
+    ["frame-ancestors", "ancestors"],
+  ]
+  const out: string[] = []
+  const warn: string[] = []
+  for (const [name, id] of dirs) {
+    const value = s(v, id)
+    if (!value) continue
+    const tokens = value.split(/\s+/)
+    for (const t of tokens)
+      if (!CSP_SOURCE.test(t))
+        return err(
+          `In ${name}, "${t}" is not a valid source. Use 'self', https:, a host such as cdn.example.com, or a nonce or hash.`
+        )
+    out.push(`${name} ${tokens.join(" ")}`)
+    if (tokens.includes("'unsafe-inline'") && (id === "script" || id === "default"))
+      warn.push(
+        `${name} 'unsafe-inline' lets injected inline scripts run, which removes most of the protection. Use nonces or hashes.`
+      )
+    if (tokens.includes("'unsafe-eval'"))
+      warn.push(`${name} 'unsafe-eval' allows eval() and similar calls.`)
+    if (tokens.includes("*") && (id === "script" || id === "default" || id === "object"))
+      warn.push(`${name} * allows scripts or objects from any host.`)
+    if (tokens.includes("data:") && id === "script")
+      warn.push("script-src data: allows scripts from data URLs.")
+    if (tokens.includes("http:")) warn.push(`${name} http: allows plain HTTP sources.`)
+  }
+  if (b(v, "upgrade")) out.push("upgrade-insecure-requests")
+  if (!out.length) return err("Fill in at least one directive.")
+  if (!s(v, "object")) warn.push("object-src is not set: add 'none' to block plugins.")
+  if (!s(v, "base")) warn.push("base-uri is not set: add 'self' to stop injected <base> tags.")
+  const reportUri = s(v, "report")
+  if (reportUri) {
+    if (!/^https?:\/\/[^\s;,'"]+$/.test(reportUri))
+      return err("The report URL must be a full http or https URL.")
+    out.push(`report-uri ${reportUri}`)
+  }
+  const policy = out.join("; ")
+  const headerName = b(v, "reportOnly")
+    ? "Content-Security-Policy-Report-Only"
+    : "Content-Security-Policy"
+  const metaOk = out.filter((x) => !/^(frame-ancestors|report-uri|sandbox)/.test(x)).join("; ")
+  return [
+    `${headerName}: ${policy}`,
+    "",
+    "nginx",
+    `add_header ${headerName} "${policy}" always;`,
+    "",
+    "Apache",
+    `Header always set ${headerName} "${policy}"`,
+    "",
+    "As a meta tag (frame-ancestors and report-uri do not work here)",
+    `<meta http-equiv="Content-Security-Policy" content="${attr(metaOk)}">`,
+    ...(warn.length ? ["", "Warnings", ...warn.map((x) => `- ${x}`)] : []),
+    ...(b(v, "reportOnly")
+      ? [
+          "",
+          "Report-Only logs violations without blocking: use it first, then switch to the enforcing header.",
+        ]
+      : []),
+  ].join("\n")
+}
+
+function hstsBuild(v: GValues): GResult {
+  const maxAge = Math.floor(n(v, "maxAge"))
+  if (!(maxAge >= 0 && Number.isFinite(maxAge))) return err("max-age must be zero or more seconds.")
+  const sub = b(v, "sub")
+  const preload = b(v, "preload")
+  if (preload && maxAge < 31536000)
+    return err("Preload requires a max-age of at least 31536000 (one year).")
+  if (preload && !sub) return err("Preload requires includeSubDomains.")
+  const value = [`max-age=${maxAge}`, sub && "includeSubDomains", preload && "preload"]
+    .filter(Boolean)
+    .join("; ")
+  const notes: string[] = []
+  if (maxAge === 0) notes.push("max-age=0 tells browsers to forget the HSTS setting for this site.")
+  else if (maxAge < 86400)
+    notes.push(
+      "A very short max-age gives little protection. Start small while testing, then raise it."
+    )
+  if (sub)
+    notes.push(
+      "includeSubDomains forces HTTPS on every subdomain: be sure they all have working certificates."
+    )
+  if (preload)
+    notes.push(
+      "Preloading ships your domain inside browsers and is slow to undo. Submit only when you are certain; the list is at hstspreload.org."
+    )
+  notes.push("Browsers only honour this header when it is sent over HTTPS.")
+  return [
+    `Strict-Transport-Security: ${value}`,
+    "",
+    "nginx",
+    `add_header Strict-Transport-Security "${value}" always;`,
+    "",
+    "Apache",
+    `Header always set Strict-Transport-Security "${value}"`,
+    "",
+    "PHP",
+    `header('Strict-Transport-Security: ${value}');`,
+    "",
+    ...notes.map((x) => `Note: ${x}`),
+  ].join("\n")
+}
+
+function securityHeadersBuild(v: GValues): GResult {
+  const rows: [string, string][] = []
+  if (b(v, "nosniff")) rows.push(["X-Content-Type-Options", "nosniff"])
+  if (v.frame !== "off") rows.push(["X-Frame-Options", String(v.frame)])
+  if (v.referrer !== "off") rows.push(["Referrer-Policy", String(v.referrer)])
+  if (b(v, "permissions"))
+    rows.push(["Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()"])
+  if (v.coop !== "off") rows.push(["Cross-Origin-Opener-Policy", String(v.coop)])
+  if (v.corp !== "off") rows.push(["Cross-Origin-Resource-Policy", String(v.corp)])
+  if (b(v, "hsts")) rows.push(["Strict-Transport-Security", "max-age=31536000; includeSubDomains"])
+  if (!rows.length) return err("Pick at least one header.")
+  const fmt = String(v.server)
+  const line = ([k, val]: [string, string]) =>
+    fmt === "nginx"
+      ? `add_header ${k} "${val}" always;`
+      : fmt === "apache"
+        ? `Header always set ${k} "${val}"`
+        : fmt === "php"
+          ? `header('${k}: ${val}');`
+          : `${k}: ${val}`
+  const open = fmt === "php" ? ["<?php"] : fmt === "apache" ? ["<IfModule mod_headers.c>"] : []
+  const close = fmt === "apache" ? ["</IfModule>"] : []
+  return [
+    ...open,
+    ...rows.map(line),
+    ...close,
+    "",
+    "Test the result with the Security Headers tool, and add a Content-Security-Policy with the CSP generator.",
+  ].join("\n")
+}
+
+function markdownTableBuild(v: GValues): GResult {
+  const raw = String(v.data ?? "")
+  if (!raw.trim()) return err("Enter rows of data, one per line.")
+  const delim = v.delimiter === "tab" ? "\t" : String(v.delimiter)
+  let rows: string[][]
+  try {
+    rows = parseCsv(raw.trim(), delim)
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Could not read the data.")
+  }
+  if (rows.length < 1) return err("Enter rows of data, one per line.")
+  const cols = Math.max(...rows.map((r) => r.length))
+  const norm = rows.map((r) =>
+    Array.from({ length: cols }, (_, i) =>
+      (r[i] ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim()
+    )
+  )
+  const head = b(v, "header") ? norm[0] : Array.from({ length: cols }, (_, i) => `Column ${i + 1}`)
+  const body = b(v, "header") ? norm.slice(1) : norm
+  const aligns = String(v.align)
+    .split(",")
+    .map((x) => x.trim().toLowerCase())
+  const al = (i: number) => aligns[i] ?? aligns[aligns.length - 1] ?? "left"
+  const widths = head.map((h, i) => Math.max(3, h.length, ...body.map((r) => r[i].length)))
+  const pad = (t: string, i: number) =>
+    al(i) === "right"
+      ? t.padStart(widths[i])
+      : al(i) === "center"
+        ? t.padStart(Math.floor((widths[i] + t.length) / 2)).padEnd(widths[i])
+        : t.padEnd(widths[i])
+  const sep = widths.map((w, i) =>
+    al(i) === "right"
+      ? `${"-".repeat(w - 1)}:`
+      : al(i) === "center"
+        ? `:${"-".repeat(w - 2)}:`
+        : `:${"-".repeat(w - 1)}`
+  )
+  const row = (r: string[]) => `| ${r.map((c, i) => pad(c, i)).join(" | ")} |`
+  return [row(head), `| ${sep.join(" | ")} |`, ...body.map(row)].join("\n")
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -3558,6 +4120,248 @@ export const generatorDefs: Record<string, GDef> = {
       yes("slash", "Keep a trailing slash", true),
     ],
     build: pathNormalizeBuild,
+  },
+  "uuid-bulk-generator": {
+    outputLabel: "UUIDs",
+    regenerate: true,
+    note: "Generated with your browser's secure random number generator. Nothing is sent or stored.",
+    fields: [
+      num("count", "How many", 10),
+      pick("version", "Version", "v4", [
+        ["v4", "v4 (random)"],
+        ["v7", "v7 (time ordered)"],
+      ]),
+      yes("hyphens", "Hyphens", true),
+      yes("upper", "Uppercase"),
+      yes("braces", "Braces { }"),
+    ],
+    build: uuidBuild,
+  },
+  "nanoid-generator": {
+    outputLabel: "IDs",
+    regenerate: true,
+    fields: [
+      num("count", "How many", 5),
+      num("length", "Length", 21),
+      pick("alphabet", "Alphabet", "url", [
+        ["url", "URL safe (A-Z a-z 0-9 _ -)"],
+        ["alnum", "Letters and numbers"],
+        ["lower", "Lowercase and numbers"],
+        ["hex", "Hex"],
+        ["numbers", "Numbers only"],
+        ["nolookalike", "No look-alike characters"],
+      ]),
+    ],
+    build: nanoBuild,
+  },
+  "random-string-generator": {
+    outputLabel: "Strings",
+    regenerate: true,
+    fields: [
+      num("length", "Length", 24),
+      num("count", "How many", 5),
+      yes("lower", "Lowercase", true),
+      yes("upper", "Uppercase", true),
+      yes("digits", "Digits", true),
+      yes("symbols", "Symbols"),
+      yes("ambiguous", "Leave out look-alikes (0 O 1 l I |)"),
+    ],
+    build: randomStringBuild,
+  },
+  "user-agent-generator": {
+    outputLabel: "User agent",
+    fields: [
+      pick("which", "Browser", "chrome-win", [
+        ["all", "Show all"],
+        ...UA_BROWSERS.map((u) => [u.id, u.label] as [string, string]),
+      ]),
+      num("version", "Major version", 131),
+    ],
+    build: uaBuild,
+  },
+  "http-status-reference": {
+    outputLabel: "Status codes",
+    fields: [text("query", "Search (number, name, meaning or 4xx)", "", "404")],
+    help: [
+      "1xx codes are informational, 2xx mean success, 3xx redirect the client.",
+      "4xx codes mean the request was wrong, 5xx mean the server failed.",
+      "Search a class such as 4xx to list every code in it.",
+      "Use 301 for permanent moves and 302 or 307 for temporary ones.",
+    ],
+    build: statusRefBuild,
+  },
+  "http-status-generator": {
+    outputLabel: "Response and server code",
+    fields: [
+      pick(
+        "code",
+        "Status code",
+        "404",
+        HTTP_STATUS.map((x) => [String(x.code), `${x.code} ${x.name}`] as [string, string])
+      ),
+      text("location", "Location (redirects only)", "https://example.com/new"),
+    ],
+    build: statusGenBuild,
+  },
+  "mime-type-lookup": {
+    outputLabel: "MIME types",
+    fields: [text("query", "Search (extension, type or use)", "", "webp")],
+    build: mimeLookupBuild,
+  },
+  "mime-type-checker": {
+    outputLabel: "Result",
+    fields: [
+      text("file", "File name", "logo.svg"),
+      text("type", "Content-Type your server sends (optional)", "image/svg+xml"),
+    ],
+    build: mimeCheckBuild,
+  },
+  "content-type-builder": {
+    outputLabel: "Header and server code",
+    fields: [
+      pick("type", "Type", "text/html", [
+        ["text/html", "text/html"],
+        ["text/plain", "text/plain"],
+        ["text/css", "text/css"],
+        ["text/javascript", "text/javascript"],
+        ["application/json", "application/json"],
+        ["application/xml", "application/xml"],
+        ["application/pdf", "application/pdf"],
+        ["application/x-www-form-urlencoded", "application/x-www-form-urlencoded"],
+        ["multipart/form-data", "multipart/form-data"],
+        ["image/png", "image/png"],
+      ]),
+      text("custom", "Or a custom type (overrides the list)", ""),
+      pick("charset", "Charset", "utf-8", [
+        ["utf-8", "utf-8"],
+        ["iso-8859-1", "iso-8859-1"],
+        ["none", "Leave out"],
+      ]),
+      text("boundary", "Multipart boundary", "----FormBoundary7MA4YWxk"),
+    ],
+    build: contentTypeBuild,
+  },
+  "cache-control-generator": {
+    outputLabel: "Header and server code",
+    fields: [
+      pick("scope", "Who may cache it", "public", [
+        ["public", "public (browsers and shared caches)"],
+        ["private", "private (the browser only)"],
+        ["none", "Not specified"],
+      ]),
+      num("maxAge", "max-age (seconds)", 31536000),
+      num("sMaxAge", "s-maxage for CDNs (seconds, 0 for none)", 0),
+      yes("immutable", "immutable (never changes while fresh)", true),
+      yes("revalidate", "must-revalidate"),
+      yes("nocache", "no-cache (check with the server before reuse)"),
+      yes("nostore", "no-store (do not keep at all)"),
+      num("swr", "stale-while-revalidate (seconds, 0 for none)", 0),
+      num("sie", "stale-if-error (seconds, 0 for none)", 0),
+    ],
+    build: cacheBuild,
+  },
+  "cors-header-generator": {
+    outputLabel: "Headers and server code",
+    fields: [
+      text("origin", "Allowed origin", "https://app.example.com"),
+      yes("mGET", "GET", true),
+      yes("mPOST", "POST", true),
+      yes("mPUT", "PUT"),
+      yes("mPATCH", "PATCH"),
+      yes("mDELETE", "DELETE"),
+      yes("mOPTIONS", "OPTIONS", true),
+      text("headers", "Allowed request headers", "Content-Type, Authorization"),
+      text("expose", "Exposed response headers (optional)", ""),
+      yes("credentials", "Allow cookies and credentials"),
+      num("maxAge", "Preflight cache (seconds)", 600),
+    ],
+    build: corsBuild,
+  },
+  "csp-generator": {
+    outputLabel: "Policy and server code",
+    note: "Sources are separated by spaces. Example: 'self' https://cdn.example.com. Start with report-only mode.",
+    fields: [
+      text("default", "default-src", "'self'"),
+      text("script", "script-src", "'self'"),
+      text("style", "style-src", "'self' 'unsafe-inline'"),
+      text("img", "img-src", "'self' data: https:"),
+      text("font", "font-src", "'self'"),
+      text("connect", "connect-src", "'self'"),
+      text("frame", "frame-src (optional)", ""),
+      text("object", "object-src", "'none'"),
+      text("base", "base-uri", "'self'"),
+      text("form", "form-action", "'self'"),
+      text("ancestors", "frame-ancestors", "'self'"),
+      text("report", "Report URL (optional)", ""),
+      yes("upgrade", "Upgrade insecure requests", true),
+      yes("reportOnly", "Report-only mode", true),
+    ],
+    build: cspBuild,
+  },
+  "hsts-header-generator": {
+    outputLabel: "Header and server code",
+    fields: [
+      num("maxAge", "max-age (seconds)", 31536000),
+      yes("sub", "includeSubDomains", true),
+      yes("preload", "preload"),
+    ],
+    build: hstsBuild,
+  },
+  "security-header-generator": {
+    outputLabel: "Headers",
+    fields: [
+      pick("server", "Output for", "nginx", [
+        ["nginx", "nginx"],
+        ["apache", "Apache"],
+        ["php", "PHP"],
+        ["raw", "Plain header lines"],
+      ]),
+      yes("nosniff", "X-Content-Type-Options: nosniff", true),
+      pick("frame", "X-Frame-Options", "SAMEORIGIN", [
+        ["off", "Do not set"],
+        ["SAMEORIGIN", "SAMEORIGIN"],
+        ["DENY", "DENY"],
+      ]),
+      pick("referrer", "Referrer-Policy", "strict-origin-when-cross-origin", [
+        ["off", "Do not set"],
+        ["strict-origin-when-cross-origin", "strict-origin-when-cross-origin"],
+        ["no-referrer", "no-referrer"],
+        ["same-origin", "same-origin"],
+      ]),
+      yes(
+        "permissions",
+        "Permissions-Policy: turn off camera, microphone, location, payment",
+        true
+      ),
+      pick("coop", "Cross-Origin-Opener-Policy", "same-origin", [
+        ["off", "Do not set"],
+        ["same-origin", "same-origin"],
+        ["same-origin-allow-popups", "same-origin-allow-popups"],
+      ]),
+      pick("corp", "Cross-Origin-Resource-Policy", "same-site", [
+        ["off", "Do not set"],
+        ["same-site", "same-site"],
+        ["same-origin", "same-origin"],
+        ["cross-origin", "cross-origin"],
+      ]),
+      yes("hsts", "Strict-Transport-Security (one year, subdomains)", true),
+    ],
+    build: securityHeadersBuild,
+  },
+  "markdown-table-generator": {
+    outputLabel: "Markdown table",
+    fields: [
+      area("data", "Rows, one per line", "Plan,Price,Servers\nStarter,$5,1\nPro,$20,5"),
+      pick("delimiter", "Cells are separated by", ",", [
+        [",", "Comma"],
+        [";", "Semicolon"],
+        ["tab", "Tab"],
+        ["|", "Pipe"],
+      ]),
+      yes("header", "First row is the header", true),
+      text("align", "Alignment per column (left, center, right)", "left, right, center"),
+    ],
+    build: markdownTableBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",

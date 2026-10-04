@@ -104,6 +104,13 @@ function TransformTool({ slug, icon }: { slug: string; icon: LucideIcon }) {
                 {output || "The result appears here."}
               </pre>
             )}
+            {def.help && (
+              <ul className="text-muted-foreground mt-4 list-disc space-y-1 pl-5 text-sm">
+                {def.help.map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -1,6 +1,7 @@
 // paste-in, paste-out developer converters. pure functions: a failure is returned as { error }, never thrown.
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
 import { format as formatSql } from "sql-formatter"
+import { parseCsv } from "@/lib/csv"
 
 export type TResult = { ok: string } | { error: string }
 
@@ -16,6 +17,8 @@ export interface TDef {
   inputLabel: string
   outputLabel: string
   sample: string
+  /** short notes under the result */
+  help?: string[]
   options?: TOption[]
   run: (input: string, opts: Record<string, string | boolean>) => TResult
 }
@@ -178,38 +181,7 @@ export function jsonToTypeScript(input: string, rootName: string, asType: boolea
 
 // ---- CSV ----
 
-export function parseCsv(text: string, delimiter: string): string[][] {
-  const rows: string[][] = []
-  let row: string[] = []
-  let cell = ""
-  let quoted = false
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') {
-        cell += '"'
-        i++
-      } else if (c === '"') quoted = false
-      else cell += c
-    } else if (c === '"') quoted = true
-    else if (c === delimiter) {
-      row.push(cell)
-      cell = ""
-    } else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++
-      row.push(cell)
-      rows.push(row)
-      row = []
-      cell = ""
-    } else cell += c
-  }
-  if (quoted) throw new Error("A quoted field is never closed.")
-  if (cell !== "" || row.length) {
-    row.push(cell)
-    rows.push(row)
-  }
-  return rows
-}
+export { parseCsv } from "@/lib/csv"
 
 const asValue = (cell: string): unknown => {
   if (cell === "") return ""
@@ -294,6 +266,242 @@ export function jsonToCsv(input: string, delimiter: string): TResult {
   )
 }
 
+// ---- batch 7: HTML and CSS and SQL ----
+
+const VOID = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+])
+const RAW = new Set(["script", "style", "pre", "textarea"])
+const BLOCK = new Set(
+  "address article aside blockquote body dd details dialog div dl dt fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 head header hgroup hr html li main nav ol p section table tbody td tfoot th thead title tr ul meta link script style base noscript template option select".split(
+    " "
+  )
+)
+
+type HtmlTok = {
+  kind: "text" | "open" | "close" | "self" | "comment" | "doctype" | "raw"
+  text: string
+  name?: string
+}
+
+function tokenizeHtml(src: string): HtmlTok[] {
+  const toks: HtmlTok[] = []
+  let i = 0
+  while (i < src.length) {
+    if (src[i] !== "<") {
+      const j = src.indexOf("<", i)
+      const end = j === -1 ? src.length : j
+      toks.push({ kind: "text", text: src.slice(i, end) })
+      i = end
+      continue
+    }
+    if (src.startsWith("<!--", i)) {
+      const j = src.indexOf("-->", i + 4)
+      const end = j === -1 ? src.length : j + 3
+      toks.push({ kind: "comment", text: src.slice(i, end) })
+      i = end
+      continue
+    }
+    const m = /^<(\/?)([A-Za-z][A-Za-z0-9:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/.exec(src.slice(i))
+    if (!m) {
+      const dt = /^<![^>]*>/.exec(src.slice(i))
+      if (dt) {
+        toks.push({ kind: "doctype", text: dt[0] })
+        i += dt[0].length
+      } else {
+        toks.push({ kind: "text", text: "<" })
+        i += 1
+      }
+      continue
+    }
+    const name = m[2].toLowerCase()
+    const full = m[0]
+    i += full.length
+    if (m[1]) toks.push({ kind: "close", text: full, name })
+    else if (full.endsWith("/>") || VOID.has(name)) toks.push({ kind: "self", text: full, name })
+    else if (RAW.has(name)) {
+      const closeRe = new RegExp(`</${name}\\s*>`, "i")
+      const rest = src.slice(i)
+      const c = closeRe.exec(rest)
+      const bodyEnd = c ? c.index : rest.length
+      toks.push({ kind: "raw", text: full + rest.slice(0, bodyEnd) + (c ? c[0] : ""), name })
+      i += bodyEnd + (c ? c[0].length : 0)
+    } else toks.push({ kind: "open", text: full, name })
+  }
+  return toks
+}
+
+const tidyTag = (t: string) =>
+  t
+    .replace(/\s+/g, " ")
+    .replace(/\s+>/, ">")
+    .replace(/\s+\/>/, " />")
+
+export function htmlFormat(input: string, indent: number): TResult {
+  if (!input.trim()) return empty()
+  const pad = " ".repeat(indent)
+  const toks = tokenizeHtml(input)
+  const out: string[] = []
+  let depth = 0
+  for (let k = 0; k < toks.length; k++) {
+    const t = toks[k]
+    const line = (s2: string) => out.push(pad.repeat(Math.max(0, depth)) + s2)
+    if (t.kind === "text") {
+      const txt = t.text.replace(/\s+/g, " ").trim()
+      if (txt) line(txt)
+    } else if (t.kind === "close") {
+      depth--
+      line(tidyTag(t.text))
+    } else if (t.kind === "open") {
+      const a = toks[k + 1]
+      const c = toks[k + 2]
+      if (
+        a &&
+        c &&
+        a.kind === "text" &&
+        c.kind === "close" &&
+        c.name === t.name &&
+        a.text.replace(/\s+/g, " ").trim().length <= 80 &&
+        !a.text.includes("\n\n")
+      ) {
+        line(tidyTag(t.text) + a.text.replace(/\s+/g, " ").trim() + tidyTag(c.text))
+        k += 2
+      } else if (a && a.kind === "close" && a.name === t.name) {
+        line(tidyTag(t.text) + tidyTag(a.text))
+        k += 1
+      } else {
+        line(tidyTag(t.text))
+        depth++
+      }
+    } else if (t.kind === "raw") {
+      // keep the inside byte for byte: only the opening line is indented
+      out.push(pad.repeat(Math.max(0, depth)) + t.text)
+    } else line(t.kind === "self" ? tidyTag(t.text) : t.text.trim())
+  }
+  return ok(out.join("\n"))
+}
+
+export function htmlMinify(input: string): TResult {
+  if (!input.trim()) return empty()
+  const toks = tokenizeHtml(input)
+  const parts: string[] = []
+  for (let k = 0; k < toks.length; k++) {
+    const t = toks[k]
+    if (t.kind === "comment") {
+      if (/^<!--\[if|^<!--!/.test(t.text)) parts.push(t.text)
+      continue
+    }
+    if (t.kind === "text") {
+      const collapsed = t.text.replace(/\s+/g, " ")
+      if (collapsed.trim() === "") {
+        const prev = [...toks.slice(0, k)].reverse().find((x) => x.kind !== "comment")
+        const next = toks.slice(k + 1).find((x) => x.kind !== "comment")
+        const edge = (x?: HtmlTok) =>
+          !x || x.kind === "doctype" || (x.name !== undefined && BLOCK.has(x.name))
+        if (!edge(prev) && !edge(next)) parts.push(" ")
+      } else parts.push(collapsed)
+      continue
+    }
+    parts.push(t.kind === "doctype" ? t.text.trim() : t.kind === "raw" ? t.text : tidyTag(t.text))
+  }
+  return ok(parts.join("").trim())
+}
+
+export function cssMinify(input: string): TResult {
+  if (!input.trim()) return empty()
+  let out = ""
+  let i = 0
+  const n2 = input.length
+  const lastChar = () => out[out.length - 1]
+  while (i < n2) {
+    const c = input[i]
+    if (c === "/" && input[i + 1] === "*") {
+      const end = input.indexOf("*/", i + 2)
+      const stop = end === -1 ? n2 : end + 2
+      if (input[i + 2] === "!") out += input.slice(i, stop)
+      i = stop
+    } else if (c === '"' || c === "'") {
+      let j = i + 1
+      while (j < n2 && input[j] !== c) j += input[j] === "\\" ? 2 : 1
+      out += input.slice(i, j + 1)
+      i = j + 1
+    } else if (c === "u" && /^url\(\s*[^'")\s]/i.test(input.slice(i, i + 12))) {
+      const j = input.indexOf(")", i)
+      const stop = j === -1 ? n2 : j + 1
+      out += input.slice(i, stop).replace(/\s+/g, "")
+      i = stop
+    } else if (/\s/.test(c)) {
+      let j = i
+      while (j < n2 && /\s/.test(input[j])) j++
+      const nextC = input[j]
+      const prev = lastChar()
+      if (!prev || !nextC || "{};,>~".includes(nextC) || "{;,>~:".includes(prev)) {
+        /* drop */
+      } else out += " "
+      i = j
+    } else if (
+      c === ";" &&
+      input
+        .slice(i + 1)
+        .trimStart()
+        .startsWith("}")
+    ) {
+      i++
+    } else {
+      out += c
+      i++
+    }
+  }
+  return ok(out.trim())
+}
+
+export function sqlMinify(input: string): TResult {
+  if (!input.trim()) return empty()
+  let out = ""
+  let i = 0
+  const n2 = input.length
+  while (i < n2) {
+    const c = input[i]
+    if (c === "-" && input[i + 1] === "-") {
+      while (i < n2 && input[i] !== "\n") i++
+    } else if (c === "/" && input[i + 1] === "*") {
+      const end = input.indexOf("*/", i + 2)
+      i = end === -1 ? n2 : end + 2
+    } else if (c === "'" || c === '"' || c === "`") {
+      let j = i + 1
+      while (j < n2) {
+        if (input[j] === c) {
+          if (input[j + 1] === c) j += 2
+          else break
+        } else j += input[j] === "\\" && c === "'" ? 2 : 1
+      }
+      out += input.slice(i, j + 1)
+      i = j + 1
+    } else if (/\s/.test(c)) {
+      while (i < n2 && /\s/.test(input[i])) i++
+      if (out && !" ,(".includes(out[out.length - 1]) && i < n2 && !",);".includes(input[i]))
+        out += " "
+    } else {
+      out += c
+      i++
+    }
+  }
+  return ok(out.trim())
+}
+
 // ---- definitions ----
 
 const indentOption: TOption = {
@@ -321,6 +529,53 @@ const delimiterOption: TOption = {
 const ind = (o: Record<string, string | boolean>) => Number(o.indent) || 2
 
 export const transformDefs: Record<string, TDef> = {
+  "html-formatter": {
+    inputLabel: "HTML",
+    outputLabel: "Formatted HTML",
+    sample:
+      "<div><h1>Title</h1><p>Some <b>bold</b> text</p><ul><li>One</li><li>Two</li></ul><script>var a=1;</script></div>",
+    options: [indentOption],
+    run: (i, o) => htmlFormat(i, ind(o)),
+  },
+  "html-minifier": {
+    inputLabel: "HTML",
+    outputLabel: "Minified HTML",
+    sample:
+      '<!-- header -->\n<div class="box">\n  <p>Hello,   world</p>\n  <pre>keep   this</pre>\n</div>\n',
+    help: [
+      "Comments are removed, except conditional comments for old Internet Explorer.",
+      "Text inside pre, textarea, script and style is left exactly as written.",
+      "Spaces between inline tags such as b and i are kept so words do not join.",
+      "Always test the minified page before deploying it.",
+    ],
+    run: (i) => htmlMinify(i),
+  },
+  "css-minifier": {
+    inputLabel: "CSS",
+    outputLabel: "Minified CSS",
+    sample:
+      "/* button */\n.btn {\n  color: #fff;\n  margin: 0 auto;\n  background: url( 'a b.png' );\n}\n.btn:hover { color: red; }\n",
+    help: [
+      "Comments are removed, except those starting with /*! which usually carry a licence.",
+      "Strings and url() values are copied exactly as written.",
+      "Spaces that change meaning, such as before a pseudo-class in a selector, are kept.",
+      "Pair minification with gzip or brotli on the server for the smallest download.",
+    ],
+    run: (i) => cssMinify(i),
+  },
+  "sql-minifier": {
+    inputLabel: "SQL",
+    outputLabel: "Minified SQL",
+    sample:
+      "-- active users\nSELECT id,\n       name\n  FROM users /* main table */\n WHERE note = 'a  b  c';\n",
+    help: [
+      "Line comments (--) and block comments (/* */) are removed.",
+      "Text in quotes, double quotes and backticks is copied exactly as written.",
+      "Runs of spaces, tabs and line breaks become a single space.",
+      "Keep any optimizer hint comments out of the input if your database reads them.",
+    ],
+    run: (i) => sqlMinify(i),
+  },
   "yaml-formatter": {
     inputLabel: "YAML",
     outputLabel: "Formatted YAML",
