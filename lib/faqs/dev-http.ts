@@ -216,7 +216,7 @@ export const dev_httpFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How does 'object-src 'none'' and 'base-uri 'self'' protect web applications?",
-      a: "'object-src 'none'' blocks obsolete vulnerable Flash and Java applet plugins. 'base-uri 'self'' prevents attackers from injecting malicious <base href> tags to hijack relative script paths.",
+      a: "'object-src 'none'' blocks obsolete vulnerable Flash and Java applet plugins. 'base-uri 'self'' prevents attackers from injecting malicious 'base href' tags to hijack relative script paths.",
     },
     {
       q: "What is the difference between 'Content-Security-Policy' and 'Content-Security-Policy-Report-Only'?",

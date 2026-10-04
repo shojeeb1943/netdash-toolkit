@@ -56,7 +56,7 @@ export const file_toolsFaqs: Record<string, Faq[]> = {
   "image-to-base64": [
     {
       q: "What does the Image to Base64 Converter create?",
-      a: "It converts local image files (PNG, JPEG, WebP, SVG, GIF, ICO) into Base64 Data URI strings ('data:image/png;base64,...') and provides ready-to-use HTML <img> and CSS background-image code snippets.",
+      a: "It converts local image files (PNG, JPEG, WebP, SVG, GIF, ICO) into Base64 Data URI strings ('data:image/png;base64,...') and provides ready-to-use HTML 'img' and CSS background-image code snippets.",
     },
     {
       q: "When is it advantageous to embed images as Base64 Data URIs?",

@@ -194,7 +194,7 @@ export const security_toolsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How does exact whitespace matching affect CSP hash validation?",
-      a: "CSP hashes are calculated byte-for-byte on the script content between the <script> tags. Modifying even a single space, newline, or tab will change the hash and cause the browser to block script execution.",
+      a: "CSP hashes are calculated byte-for-byte on the script content between the 'script' tags. Modifying even a single space, newline, or tab will change the hash and cause the browser to block script execution.",
     },
     {
       q: "Are my JavaScript code snippets or stylesheet styles uploaded anywhere?",

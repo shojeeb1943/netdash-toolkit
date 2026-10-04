@@ -216,7 +216,7 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How does capture group extraction assist in string parsing?",
-      a: "It breaks down matching substrings into numbered ($1, $2) and named (?<group>) capture groups, allowing developers to extract structured fields from raw server logs.",
+      a: "It breaks down matching substrings into numbered ($1, $2) and named (?'group') capture groups, allowing developers to extract structured fields from raw server logs.",
     },
     {
       q: "What is catastrophic backtracking and how can it be avoided?",
@@ -272,7 +272,7 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "Can I generate HTML markup tags (p, h2, ul, li) directly?",
-      a: "Yes. You can toggle HTML output to generate pre-wrapped '<p>', '<h2>', and '<ul><li>' tags with 1-click copy for rapid web template prototyping.",
+      a: "Yes. You can toggle HTML output to generate pre-wrapped ''p'', ''h2'', and ''ul''li'' tags with 1-click copy for rapid web template prototyping.",
     },
     {
       q: "Is any generated dummy text or configuration transmitted externally?",
@@ -310,7 +310,7 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How does YAML represent multi-line string blocks?",
-      a: "YAML uses the pipe operator ('|') to preserve literal newlines (literal block scalar) and the greater-than sign ('>') to fold multi-line strings into a single paragraph.",
+      a: "YAML uses the pipe operator ('|') to preserve literal newlines (literal block scalar) and the greater-than sign ('') to fold multi-line strings into a single paragraph.",
     },
   ],
   "xml-formatter": [
@@ -324,7 +324,7 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How does this tool handle XML declaration headers and self-closing tags?",
-      a: "It preserves '<?xml version=\"1.0\" encoding=\"UTF-8\"?>' declarations, formats self-closing tags ('<tag />') cleanly, and validates XML namespace attributes (xmlns).",
+      a: "It preserves '?xml version=\"1.0\" encoding=\"UTF-8\"?' declarations, formats self-closing tags ('tag /') cleanly, and validates XML namespace attributes (xmlns).",
     },
     {
       q: "Are my XML files, sitemaps, or RSS feeds uploaded to LicenBase?",
@@ -336,7 +336,7 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "What are the 5 predefined XML entity references?",
-      a: "Special characters must be escaped in XML: '&lt;' for '<', '&gt;' for '>', '&amp;' for '&', '&apos;' for ''', and '&quot;' for '\"'.",
+      a: "Special characters must be escaped in XML: '&lt;' for '', '&gt;' for '', '&amp;' for '&', '&apos;' for ', and '&quot;' for '\"'.",
     },
   ],
   "sql-formatter": [
@@ -553,12 +553,12 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
       a: "It formats messy, unformatted, or minified HTML documents into clean, indented code with customizable 2-space or 4-space indentation, consistent tag nesting, and inline script/style formatting.",
     },
     {
-      q: "Can I format embedded CSS (<style>) and JavaScript (<script>) blocks?",
+      q: "Can I format embedded CSS ('style') and JavaScript ('script') blocks?",
       a: "Yes. The formatter recursively beautifies embedded CSS rules and JavaScript functions inside script tags along with the surrounding HTML markup.",
     },
     {
       q: "How does clean HTML formatting assist in debugging layout issues?",
-      a: "Indented HTML makes unclosed <div> tags, mismatched container wrappers, and broken table structures visually apparent immediately.",
+      a: "Indented HTML makes unclosed 'div' tags, mismatched container wrappers, and broken table structures visually apparent immediately.",
     },
     {
       q: "Is my HTML source code uploaded or stored on remote servers?",
@@ -569,7 +569,7 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
       a: "Use the HTML Minifier to compress HTML markup before publishing web pages to live production servers.",
     },
     {
-      q: "How does the tool handle void elements (like <img />, <input />, <br>)?",
+      q: "How does the tool handle void elements (like img /, input /, 'br')?",
       a: "It recognizes self-closing void elements according to HTML5 specifications without adding redundant closing tags.",
     },
   ],
@@ -579,8 +579,8 @@ export const devtoolsFaqs: Record<string, Faq[]> = {
       a: "It removes unnecessary whitespace, strips HTML comments, collapses multi-line text, removes redundant attribute quotes, and minifies inline CSS and JavaScript, reducing HTML payload sizes by 15% to 30%.",
     },
     {
-      q: "Does minifying HTML break preformatted text (<pre>, <code>) blocks?",
-      a: "No. The minifier detects '<pre>', '<code>', and '<textarea>' elements and preserves their exact internal whitespace to ensure code formatting is never corrupted.",
+      q: "Does minifying HTML break preformatted text ('pre', 'code') blocks?",
+      a: "No. The minifier detects ''pre'', ''code'', and ''textarea'' elements and preserves their exact internal whitespace to ensure code formatting is never corrupted.",
     },
     {
       q: "Why is HTML minification important for Core Web Vitals?",

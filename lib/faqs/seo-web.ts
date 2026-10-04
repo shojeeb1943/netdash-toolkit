@@ -24,7 +24,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How can I prevent duplicate content indexing on UTM tracking landing pages?",
-      a: "Ensure all landing pages contain a clean self-referential '<link rel=\"canonical\">' tag that points to the base URL without UTM query parameters.",
+      a: "Ensure all landing pages contain a clean self-referential 'link rel=\"canonical\"' tag that points to the base URL without UTM query parameters.",
     },
   ],
   "meta-title-checker": [
@@ -102,7 +102,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "Why is URL breadcrumb formatting important in modern SERP snippets?",
-      a: "Clean canonical URL structures and BreadcrumbList schema allow Google to display brandable navigation hierarchies (e.g. 'LicenBase > Blog > VPS Guide') rather than raw URL strings.",
+      a: "Clean canonical URL structures and BreadcrumbList schema allow Google to display brandable navigation hierarchies (e.g. 'LicenBase  Blog  VPS Guide') rather than raw URL strings.",
     },
   ],
   "robots-txt-generator": [
@@ -134,7 +134,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
   "sitemap-generator": [
     {
       q: "What format and tags does the Sitemap Generator output?",
-      a: "It generates valid XML sitemap files adhering to the official Sitemaps.org protocol, compiling <url>, <loc>, <lastmod>, <changefreq>, and <priority> metadata for all indexable pages across your website.",
+      a: "It generates valid XML sitemap files adhering to the official Sitemaps.org protocol, compiling 'url', 'loc', 'lastmod', 'changefreq', and 'priority' metadata for all indexable pages across your website.",
     },
     {
       q: "Why is an XML sitemap essential for search engine crawling and indexing?",
@@ -164,7 +164,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "Why is JSON-LD preferred over Microdata or RDFa for structured data?",
-      a: "Google explicitly recommends JSON-LD because it is contained in a clean '<script type=\"application/ld+json\">' tag within the HTML head or body, completely decoupled from page presentation HTML.",
+      a: "Google explicitly recommends JSON-LD because it is contained in a clean 'script type=\"application/ld+json\"' tag within the HTML head or body, completely decoupled from page presentation HTML.",
     },
     {
       q: "How does structured data markup help earn rich snippets in Google?",
@@ -186,7 +186,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
   "open-graph-generator": [
     {
       q: "What social preview tags does the Open Graph Generator create?",
-      a: 'It generates standard Open Graph (<meta property="og:*">) tags for social media platforms (Facebook, LinkedIn, Discord, Slack, WhatsApp), configuring og:title, og:description, og:image, og:url, og:type, and og:site_name.',
+      a: 'It generates standard Open Graph (meta property="og:*") tags for social media platforms (Facebook, LinkedIn, Discord, Slack, WhatsApp), configuring og:title, og:description, og:image, og:url, og:type, and og:site_name.',
     },
     {
       q: "What are the recommended dimensions for the og:image social preview card?",
@@ -319,7 +319,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
       a: "It parses HTML heading tags (H1 through H6) to evaluate heading hierarchy, detect skipped heading levels (e.g. H2 followed directly by H4), verify single H1 compliance, and measure section content lengths.",
     },
     {
-      q: "Why is a single <h1> tag mandatory for SEO and accessibility?",
+      q: "Why is a single 'h1' tag mandatory for SEO and accessibility?",
       a: "A single H1 communicates the primary topic of the page to search engines and screen readers. Multiple H1 tags can dilute topical focus and confuse assistive technology navigation.",
     },
     {
@@ -335,7 +335,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
       a: "Use the Word Counter and Keyword Density Calculator to audit section lengths and keyword distributions beneath each H2 section.",
     },
     {
-      q: "How many <h2> sections are recommended for comprehensive guides?",
+      q: "How many 'h2' sections are recommended for comprehensive guides?",
       a: "Technical guides typically benefit from 4 to 8 distinct H2 sections, each covering a specific sub-topic or troubleshooting step to maximize scannability.",
     },
   ],
@@ -498,7 +498,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
   "canonical-url-generator": [
     {
       q: "What HTML code does the Canonical URL Generator produce?",
-      a: 'It generates standard \'<link rel="canonical" href="https://yourdomain.com/canonical-path">\' tags to specify the definitive master version of a web page for search engine crawlers.',
+      a: 'It generates standard \'link rel="canonical" href="https://yourdomain.com/canonical-path"\' tags to specify the definitive master version of a web page for search engine crawlers.',
     },
     {
       q: "How do canonical URL tags prevent duplicate content penalties?",
@@ -576,7 +576,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
   "twitter-card-generator": [
     {
       q: "What tags does the Twitter Card Generator create?",
-      a: 'It builds standard Twitter/X card metadata (<meta name="twitter:*">), configuring twitter:card type (summary vs summary_large_image), twitter:title, twitter:description, twitter:image, and twitter:site creator handles.',
+      a: 'It builds standard Twitter/X card metadata (meta name="twitter:*"), configuring twitter:card type (summary vs summary_large_image), twitter:title, twitter:description, twitter:image, and twitter:site creator handles.',
     },
     {
       q: "What is the difference between 'summary' and 'summary_large_image' cards?",
@@ -618,7 +618,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "What related tool generates the underlying Open Graph HTML tags?",
-      a: 'Use the Open Graph Generator to produce clean <meta property="og:*"> HTML markup for your website head section.',
+      a: 'Use the Open Graph Generator to produce clean meta property="og:*" HTML markup for your website head section.',
     },
     {
       q: "How can I force Facebook or LinkedIn to clear their social preview cache?",
@@ -644,7 +644,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "What related tool helps build the exact Twitter Card HTML tags?",
-      a: 'Use the Twitter Card Generator to output clean <meta name="twitter:*"> markup for your CMS templates.',
+      a: 'Use the Twitter Card Generator to output clean meta name="twitter:*" markup for your CMS templates.',
     },
     {
       q: "What tool simulates standard Facebook and LinkedIn social cards?",
@@ -654,10 +654,10 @@ export const seo_webFaqs: Record<string, Faq[]> = {
   "meta-tag-generator": [
     {
       q: "What HTML tags does the Meta Tag Generator construct?",
-      a: "It builds a complete HTML <head> metadata block containing Page Title, Meta Description, Viewport configuration, Charset (UTF-8), Robots indexing directives, Canonical link, Author, and Keywords.",
+      a: "It builds a complete HTML 'head' metadata block containing Page Title, Meta Description, Viewport configuration, Charset (UTF-8), Robots indexing directives, Canonical link, Author, and Keywords.",
     },
     {
-      q: "Why is the '<meta name=\"viewport\">' tag essential for mobile SEO?",
+      q: "Why is the 'meta name=\"viewport\"' tag essential for mobile SEO?",
       a: "The viewport tag ('width=device-width, initial-scale=1.0') instructs mobile browsers to render web pages at responsive device dimensions, which is a mandatory prerequisite for Google Mobile-First Indexing.",
     },
     {
@@ -674,7 +674,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "Where should the generated meta tags be placed in an HTML document?",
-      a: "Paste the generated tags inside the opening '<head>' and closing '</head>' tags of your HTML document, placed before any external stylesheets or scripts.",
+      a: "Paste the generated tags inside the opening ''head'' and closing '/head' tags of your HTML document, placed before any external stylesheets or scripts.",
     },
   ],
   "html-sitemap-generator": [
@@ -722,7 +722,7 @@ export const seo_webFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How do I link the generated manifest.json in my HTML document?",
-      a: 'Place \'<link rel="manifest" href="/manifest.json">\' inside your HTML head, and save the generated JSON file in your website\'s root document directory.',
+      a: 'Place \'link rel="manifest" href="/manifest.json"\' inside your HTML head, and save the generated JSON file in your website\'s root document directory.',
     },
     {
       q: "What related tool helps generate security policies and robots instructions?",

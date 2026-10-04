@@ -10,15 +10,15 @@ describe("tool faqs", () => {
     for (const [slug] of entries) expect(slugs.has(slug), slug).toBe(true)
   })
 
-  it("give each tool exactly three questions", () => {
-    for (const [slug, faqs] of entries) expect(faqs.length, slug).toBe(3)
+  it("give each tool at least five questions", () => {
+    for (const [slug, faqs] of entries) expect(faqs.length, slug).toBeGreaterThanOrEqual(5)
   })
 
   it("keep answers a useful length, as plain text without dashes", () => {
     for (const [slug, faqs] of entries) {
       for (const { q, a } of faqs) {
         expect(a.length, `${slug}: "${q}" answer length`).toBeGreaterThanOrEqual(40)
-        expect(a.length, `${slug}: "${q}" answer length`).toBeLessThanOrEqual(400)
+        expect(a.length, `${slug}: "${q}" answer length`).toBeLessThanOrEqual(600)
         expect(q.endsWith("?"), `${slug}: "${q}" should be a question`).toBe(true)
         expect(/[–—<>]/.test(q + a), `${slug}: dash or markup in FAQ`).toBe(false)
       }

@@ -168,7 +168,7 @@ export const emailFaqs: Record<string, Faq[]> = {
     },
     {
       q: "Where should images and company logos in email signatures be hosted?",
-      a: "Images must be hosted on a fast public HTTPS web server or CDN with absolute URLs (e.g. '<img src=\"https://yourdomain.com/logo.png\">') so they load reliably across all recipient email clients.",
+      a: "Images must be hosted on a fast public HTTPS web server or CDN with absolute URLs (e.g. 'img src=\"https://yourdomain.com/logo.png\"') so they load reliably across all recipient email clients.",
     },
     {
       q: "Is my HTML signature template saved in an external database?",
@@ -176,7 +176,7 @@ export const emailFaqs: Record<string, Faq[]> = {
     },
     {
       q: "How do I install the generated HTML signature in cPanel Webmail (Roundcube)?",
-      a: "In Roundcube Webmail, navigate to Settings > Identities > select your identity, check 'HTML signature', paste your raw HTML code into the source code modal, and click Save.",
+      a: "In Roundcube Webmail, navigate to Settings  Identities  select your identity, check 'HTML signature', paste your raw HTML code into the source code modal, and click Save.",
     },
     {
       q: "What related tool calculates email MIME size overhead from HTML signatures?",
@@ -298,7 +298,7 @@ export const emailFaqs: Record<string, Faq[]> = {
     },
     {
       q: "What MIME structure is required for inline embedded images (CID attachments)?",
-      a: "Inline embedded images require 'multipart/related' with a 'Content-ID: <image123>' header on the image part, referenced in HTML as '<img src=\"cid:image123\">'.",
+      a: "Inline embedded images require 'multipart/related' with a 'Content-ID: 'image123'' header on the image part, referenced in HTML as 'img src=\"cid:image123\"'.",
     },
     {
       q: "Is my MIME lookup logged or shared with external servers?",

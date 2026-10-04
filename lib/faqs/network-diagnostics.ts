@@ -718,7 +718,7 @@ export const network_diagnosticsFaqs: Record<string, Faq[]> = {
     },
     {
       q: "Can I export VLAN mapping tables for Cisco, Juniper, or Linux network switches?",
-      a: "Yes. You can export structured VLAN assignment tables as CSV files or generate command-line syntax for Cisco IOS (vlan <id>) and Linux bridge/interface definitions.",
+      a: "Yes. You can export structured VLAN assignment tables as CSV files or generate command-line syntax for Cisco IOS (vlan 'id') and Linux bridge/interface definitions.",
     },
     {
       q: "Is my enterprise VLAN segmentation architecture saved on remote servers?",

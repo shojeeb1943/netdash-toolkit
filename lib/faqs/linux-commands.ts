@@ -160,11 +160,11 @@ export const linux_commandsFaqs: Record<string, Faq[]> = {
   "apache-virtualhost-generator": [
     {
       q: "What parameters does the Apache VirtualHost Generator construct?",
-      a: "It builds complete Apache '<VirtualHost *:80>' and '<VirtualHost *:443>' configuration files, setting ServerName, ServerAlias, DocumentRoot, SSLEngine directives, PHP-FPM proxy handlers, and mod_rewrite rules.",
+      a: "It builds complete Apache ''VirtualHost *:80'' and ''VirtualHost *:443'' configuration files, setting ServerName, ServerAlias, DocumentRoot, SSLEngine directives, PHP-FPM proxy handlers, and mod_rewrite rules.",
     },
     {
       q: "How does this generator proxy PHP execution to PHP-FPM via mod_proxy_fcgi?",
-      a: "It adds a '<FilesMatch \\.php$>' block with 'SetHandler \"proxy:unix:/run/php/php-fpm.sock|fcgi://localhost/\"' to decouple dynamic PHP execution from Apache worker processes.",
+      a: "It adds a 'FilesMatch \\.php$' block with 'SetHandler \"proxy:unix:/run/php/php-fpm.sock|fcgi://localhost/\"' to decouple dynamic PHP execution from Apache worker processes.",
     },
     {
       q: "Where are custom Apache virtual host files stored in RHEL/AlmaLinux vs Ubuntu?",

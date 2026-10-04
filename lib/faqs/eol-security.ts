@@ -79,58 +79,6 @@ export const eol_securityFaqs: Record<string, Faq[]> = {
       a: "PHP 8.1 reached EOL in November 2024. PHP 8.2 security support ends in December 2025. PHP 8.3 security support extends through November 2026.",
     },
   ],
-  "nodejs-eol-checker": [
-    {
-      q: "What lifecycle information does the Node.js EOL Checker track?",
-      a: "It tracks Current release phases, Active LTS (Long Term Support) transition dates, Maintenance LTS windows, and End of Life dates for even-numbered (LTS) and odd-numbered Node.js releases.",
-    },
-    {
-      q: "Why are even-numbered Node.js versions (e.g. v18, v20, v22) recommended for production?",
-      a: "Even-numbered releases become Long Term Support (LTS) versions receiving 30 months of guaranteed active support and maintenance. Odd-numbered releases (v19, v21, v23) are experimental and supported for only 6 months.",
-    },
-    {
-      q: "What happens when a Node.js version enters the Maintenance LTS phase?",
-      a: "During Maintenance LTS, only critical bug fixes, severe security patches, and documentation updates are backported. No new language features or breaking API changes are introduced.",
-    },
-    {
-      q: "Are my Node.js version queries logged or stored remotely?",
-      a: "No. All lifecycle dates are evaluated locally in your browser using official Node.js release schedule data feeds.",
-    },
-    {
-      q: "What are the EOL dates for Node.js 18 LTS, Node.js 20 LTS, and Node.js 22 LTS?",
-      a: "Node.js 18 reaches EOL in April 2025. Node.js 20 LTS is supported through April 2026. Node.js 22 LTS is supported through April 2027.",
-    },
-    {
-      q: "What tool helps manage multiple Node.js versions on a server?",
-      a: "Use Node Version Manager (NVM) or CloudLinux NodeJS Selector to install and switch between multiple isolated Node.js runtimes seamlessly.",
-    },
-  ],
-  "python-eol-checker": [
-    {
-      q: "What lifecycle milestones does the Python EOL Checker display?",
-      a: "It tracks release dates, feature release windows, bugfix support end dates, and final End of Life security patch deadlines across Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, and 3.14.",
-    },
-    {
-      q: "What is the standard support lifecycle for Python 3 releases?",
-      a: "Python releases receive 1.5 years of active bugfix support followed by 3.5 years of security-only fixes, providing an overall 5-year official maintenance lifecycle.",
-    },
-    {
-      q: "Why is running unsupported Python versions dangerous in production?",
-      a: "Unsupported Python runtimes do not receive security updates for standard library vulnerabilities (such as SSL, urllib, or parser CVEs), leaving web applications vulnerable to exploits.",
-    },
-    {
-      q: "Is my Python version search recorded or shared externally?",
-      a: "No. The lookup executes locally in your browser session using verified Python Software Foundation release schedules without logging.",
-    },
-    {
-      q: "What are the official EOL dates for Python 3.8, 3.9, and 3.10?",
-      a: "Python 3.8 reached EOL in October 2024. Python 3.9 security support concludes in October 2025. Python 3.10 is supported through October 2026.",
-    },
-    {
-      q: "What tool helps isolate Python application dependencies?",
-      a: "Use Python Virtual Environments ('python -m venv venv') or CloudLinux Python Selector to manage isolated packages and runtimes per application.",
-    },
-  ],
   "mysql-eol-checker": [
     {
       q: "What lifecycle phases does the MySQL EOL Checker report?",
