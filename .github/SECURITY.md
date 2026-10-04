@@ -155,7 +155,7 @@ what it does not stop, stated with the reason rather than left implied:
 
 ### What the App Contacts
 
-beyond the host a user types into those tools, the app contacts 13 fixed third-party hosts, each of them also declared per tool in the UI before the tool runs.
+beyond the host a user types into those tools, the app contacts 16 fixed third-party hosts, each of them also declared per tool in the UI before the tool runs.
 
 <!-- egress:app:start -->
 
@@ -174,6 +174,9 @@ beyond the host a user types into those tools, the app contacts 13 fixed third-p
 | `stat.ripe.net`                   | RIPEstat routing data         | `lib/ripestat.ts`                                  |
 | `ipwho.is`                        | IP geolocation API            | `lib/ipwhois.ts`                                   |
 | `api.ipify.org`                   | public IP fallback API        | `lib/ipwhois.ts`                                   |
+| `endoflife.date`                  | product lifecycle API         | `lib/eol.ts`                                       |
+| `services.nvd.nist.gov`           | NIST NVD CVE API              | `lib/cve.ts`                                       |
+| `api.pwnedpasswords.com`          | HIBP password range API       | `lib/pwned.ts`                                     |
 
 <!-- egress:app:end -->
 

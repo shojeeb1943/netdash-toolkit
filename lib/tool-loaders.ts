@@ -748,6 +748,28 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/ip-geolocation").then((m) => ({ default: m.IpGeolocation })),
   "my-ip-address": () =>
     import("@/components/tools/my-ip-address").then((m) => ({ default: m.MyIpAddress })),
+  "php-eol-checker": () =>
+    import("@/components/tools/php-eol-checker").then((m) => ({ default: m.PhpEolChecker })),
+  "mysql-eol-checker": () =>
+    import("@/components/tools/mysql-eol-checker").then((m) => ({ default: m.MysqlEolChecker })),
+  "mariadb-eol-checker": () =>
+    import("@/components/tools/mariadb-eol-checker").then((m) => ({
+      default: m.MariadbEolChecker,
+    })),
+  "almalinux-eol-checker": () =>
+    import("@/components/tools/almalinux-eol-checker").then((m) => ({
+      default: m.AlmalinuxEolChecker,
+    })),
+  "ubuntu-eol-checker": () =>
+    import("@/components/tools/ubuntu-eol-checker").then((m) => ({ default: m.UbuntuEolChecker })),
+  "debian-eol-checker": () =>
+    import("@/components/tools/debian-eol-checker").then((m) => ({ default: m.DebianEolChecker })),
+  "cve-search": () =>
+    import("@/components/tools/cve-search").then((m) => ({ default: m.CveSearch })),
+  "pwned-password-checker": () =>
+    import("@/components/tools/pwned-password-checker").then((m) => ({
+      default: m.PwnedPasswordChecker,
+    })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {

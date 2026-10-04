@@ -3069,6 +3069,188 @@ export const tools: ToolDefinition[] = [
     },
     keywords: ["my-ip", "whats-my-ip", "public-ip", "ip-address", "client-ip", "ip-detector"],
   },
+  {
+    slug: "php-eol-checker",
+    label: "PHP EOL Checker",
+    title: "PHP End of Life & Version Support Checker",
+    description:
+      "Check PHP version lifecycle status, active support windows, and end-of-life dates",
+    icon: CalendarClock,
+    category: "devtools",
+    features: [
+      "PHP lifecycle and EOL status",
+      "Active and security support dates",
+      "Days until end of life calculation",
+      "Complete PHP release schedule table",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["endoflife.date"],
+    },
+    keywords: [
+      "php-eol",
+      "php-version",
+      "php-support",
+      "end-of-life",
+      "php-lifecycle",
+      "php-security",
+    ],
+  },
+  {
+    slug: "mysql-eol-checker",
+    label: "MySQL EOL Checker",
+    title: "MySQL End of Life & Support Lifecycle Checker",
+    description:
+      "Check MySQL database release status, premier support windows, and end-of-life dates",
+    icon: Database,
+    category: "devtools",
+    features: [
+      "MySQL version support status",
+      "Premier and extended support dates",
+      "LTS release identification",
+      "Full MySQL version matrix",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["endoflife.date"],
+    },
+    keywords: ["mysql-eol", "mysql-support", "mysql-version", "database-lifecycle", "mysql-lts"],
+  },
+  {
+    slug: "mariadb-eol-checker",
+    label: "MariaDB EOL Checker",
+    title: "MariaDB End of Life & Release Lifecycle Checker",
+    description:
+      "Check MariaDB server version maintenance status, support lifespans, and EOL dates",
+    icon: Database,
+    category: "devtools",
+    features: [
+      "MariaDB release maintenance status",
+      "End-of-support deadlines",
+      "Short-term vs long-term release flags",
+      "MariaDB version history table",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["endoflife.date"],
+    },
+    keywords: ["mariadb-eol", "mariadb-support", "mariadb-version", "database-eol", "mariadb-lts"],
+  },
+  {
+    slug: "almalinux-eol-checker",
+    label: "AlmaLinux EOL Checker",
+    title: "AlmaLinux OS End of Life & Support Checker",
+    description:
+      "Check AlmaLinux enterprise Linux version support status, active windows, and EOL dates",
+    icon: Terminal,
+    category: "linux",
+    features: [
+      "AlmaLinux release status and EOL",
+      "Active and security support dates",
+      "RHEL compatibility reference",
+      "Complete AlmaLinux release history",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["endoflife.date"],
+    },
+    keywords: [
+      "almalinux-eol",
+      "almalinux-support",
+      "enterprise-linux",
+      "rhel-eol",
+      "almalinux-lifecycle",
+    ],
+  },
+  {
+    slug: "ubuntu-eol-checker",
+    label: "Ubuntu EOL Checker",
+    title: "Ubuntu Server & Desktop EOL Lifecycle Checker",
+    description:
+      "Check Ubuntu release lifecycle status, standard support windows, and ESM end-of-life dates",
+    icon: Terminal,
+    category: "linux",
+    features: [
+      "Ubuntu LTS vs standard lifecycle",
+      "End of standard support dates",
+      "Expanded Security Maintenance (ESM) info",
+      "Full Ubuntu release cycle matrix",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["endoflife.date"],
+    },
+    keywords: ["ubuntu-eol", "ubuntu-lts", "ubuntu-support", "canonical-lifecycle", "esm-support"],
+  },
+  {
+    slug: "debian-eol-checker",
+    label: "Debian EOL Checker",
+    title: "Debian GNU/Linux End of Life & LTS Checker",
+    description:
+      "Check Debian release codenames, security support status, and Long Term Support (LTS) dates",
+    icon: Terminal,
+    category: "linux",
+    features: [
+      "Debian release lifecycle status",
+      "Security team support timelines",
+      "Debian LTS transition dates",
+      "Debian codenames and release table",
+    ],
+    runtime: {
+      offline: false,
+      thirdParty: ["endoflife.date"],
+    },
+    keywords: ["debian-eol", "debian-lts", "debian-support", "debian-lifecycle", "debian-release"],
+  },
+  {
+    slug: "cve-search",
+    label: "CVE Search",
+    title: "NIST NVD Common Vulnerabilities & Exposures Search",
+    description:
+      "Search NIST National Vulnerability Database for CVEs, CVSS severity scores, and security advisories",
+    icon: ShieldAlert,
+    category: "security",
+    features: [
+      "Search NIST NVD vulnerability database",
+      "CVSS v3.1 base scores and severity levels",
+      "Published and modified dates",
+      "Direct links to official NVD vulnerability records",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["services.nvd.nist.gov"],
+    },
+    keywords: [
+      "cve-search",
+      "nvd",
+      "vulnerability-scanner",
+      "cvss-score",
+      "security-flaws",
+      "nist",
+    ],
+  },
+  {
+    slug: "pwned-password-checker",
+    label: "Pwned Password Checker",
+    title: "Have I Been Pwned Password Breach Checker",
+    description:
+      "Check if a password has appeared in known data breaches using k-anonymity SHA-1 hash lookup",
+    icon: KeyRound,
+    category: "security",
+    features: [
+      "Have I Been Pwned database lookup",
+      "K-anonymity SHA-1 prefix hashing in browser",
+      "Password never transmitted or logged",
+      "Exact breach occurrence count",
+    ],
+    popular: true,
+    runtime: {
+      offline: false,
+      thirdParty: ["api.pwnedpasswords.com"],
+    },
+    keywords: ["pwned-passwords", "hibp", "password-leak", "breached-password", "security-audit"],
+  },
 ]
 
 // standalone nav items, not tools. everything renders from this registry; there is no other list.
