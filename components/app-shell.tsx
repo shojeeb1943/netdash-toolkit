@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const toggleSidebar = useCallback(() => setDrawer(!sidebarOpen), [setDrawer, sidebarOpen])
 
   return (
-    <div className="bg-background flex h-dvh">
+    <div className="bg-background flex h-[calc(100dvh-var(--lb-hdr,7rem))]">
       {/* skip link for keyboard navigation (wcag 2.4.1) */}
       <a
         href="#main-content"
