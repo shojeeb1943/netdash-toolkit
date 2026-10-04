@@ -143,6 +143,13 @@ import {
   Hourglass,
   ShieldQuestion,
   Ticket,
+  ArrowDownAZ,
+  CaseSensitive,
+  Diff,
+  Eraser,
+  GitCompare,
+  ListX,
+  Table2,
 } from "lucide-react"
 
 export type ToolCategory =
@@ -2795,6 +2802,84 @@ export const tools: ToolDefinition[] = [
     category: "security",
     features: ["SHA-256 384 512", "Script or style", "Policy line"],
     keywords: ["csp", "hash", "inline script", "content security policy", "sha256"],
+  },
+  // === text-tools ===
+  {
+    slug: "text-case-converter",
+    label: "Text Case Converter",
+    title: "Text Case Converter",
+    description:
+      "Convert text to upper, lower, title or sentence case and to camelCase, snake_case, kebab-case and more",
+    icon: CaseSensitive,
+    category: "devtools",
+    features: ["13 cases", "Programming cases", "Per line conversion"],
+    keywords: ["case converter", "camelcase", "snake case", "title case", "uppercase"],
+  },
+  {
+    slug: "line-sorter",
+    label: "Line Sorter",
+    title: "Line Sorter",
+    description:
+      "Sort lines of text alphabetically, by number or by length, reverse them or shuffle them",
+    icon: ArrowDownAZ,
+    category: "devtools",
+    features: ["Eight orders", "Natural numbers", "Shuffle"],
+    keywords: ["sort lines", "alphabetical", "sort text", "reverse lines", "shuffle"],
+  },
+  {
+    slug: "duplicate-line-remover",
+    label: "Duplicate Line Remover",
+    title: "Duplicate Line Remover",
+    description:
+      "Remove repeated lines, or show only the duplicates or only the unique lines, with optional counts",
+    icon: ListX,
+    category: "devtools",
+    features: ["Three modes", "Ignore case", "Occurrence counts"],
+    keywords: ["remove duplicates", "duplicate lines", "unique lines", "dedupe", "list cleaner"],
+  },
+  {
+    slug: "whitespace-cleaner",
+    label: "Whitespace Cleaner",
+    title: "Whitespace Cleaner",
+    description:
+      "Clean messy text: trim lines, collapse spaces, fix blank lines and remove invisible zero-width characters",
+    icon: Eraser,
+    category: "devtools",
+    features: ["Invisible characters", "Blank lines", "Line endings"],
+    keywords: ["whitespace", "trim", "zero width space", "non breaking space", "clean text"],
+  },
+  {
+    slug: "tsv-to-csv",
+    label: "TSV to CSV",
+    title: "TSV to CSV Converter",
+    description:
+      "Convert tab separated text, such as cells copied from a spreadsheet, into correctly quoted CSV",
+    icon: Table2,
+    category: "devtools",
+    features: ["Correct quoting", "Choose delimiter", "Formula guard"],
+    keywords: ["tsv", "csv", "convert", "spreadsheet", "tab separated"],
+  },
+  {
+    slug: "text-diff",
+    label: "Text Diff",
+    title: "Text Diff Checker",
+    description:
+      "Compare two pieces of text line by line and see exactly which lines were added, removed or kept",
+    icon: GitCompare,
+    category: "devtools",
+    features: ["Line by line", "Ignore case and spacing", "Swap sides"],
+    keywords: ["diff", "compare text", "text compare", "difference", "changes"],
+  },
+  {
+    slug: "json-diff",
+    label: "JSON Diff",
+    title: "JSON Diff and Compare",
+    description:
+      "Compare two JSON documents and list every added, removed and changed value by its path",
+    icon: Diff,
+    category: "devtools",
+    features: ["Path based", "Ignores key order", "Arrays by position"],
+    keywords: ["json diff", "compare json", "json compare", "difference", "api response"],
   },
 ]
 

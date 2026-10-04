@@ -3436,6 +3436,207 @@ async function cspHashBuild(v: GValues): Promise<GResult> {
   ].join("\n")
 }
 
+// ---------- batch 8b: text utilities ----------
+
+export function splitWords(line: string): string[] {
+  return line
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+}
+
+const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+
+export function convertCase(text: string, mode: string): string {
+  const perLine = (fn: (line: string) => string) => text.split(/\r?\n/).map(fn).join("\n")
+  switch (mode) {
+    case "upper":
+      return text.toUpperCase()
+    case "lower":
+      return text.toLowerCase()
+    case "title":
+      return text
+        .toLowerCase()
+        .replace(/(^|[\s"'([{-])(\p{L})/gu, (_m, p: string, c: string) => p + c.toUpperCase())
+    case "sentence":
+      return text
+        .toLowerCase()
+        .replace(/(^\s*|[.!?]\s+)(\p{L})/gu, (_m, p: string, c: string) => p + c.toUpperCase())
+    case "alternating":
+      return Array.from(text.toLowerCase(), (c, i) => (i % 2 ? c.toUpperCase() : c)).join("")
+    case "inverse":
+      return Array.from(text, (c) =>
+        c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()
+      ).join("")
+    case "camel":
+      return perLine((l) =>
+        splitWords(l)
+          .map((w, i) => (i ? cap(w) : w.toLowerCase()))
+          .join("")
+      )
+    case "pascal":
+      return perLine((l) => splitWords(l).map(cap).join(""))
+    case "snake":
+      return perLine((l) =>
+        splitWords(l)
+          .map((w) => w.toLowerCase())
+          .join("_")
+      )
+    case "kebab":
+      return perLine((l) =>
+        splitWords(l)
+          .map((w) => w.toLowerCase())
+          .join("-")
+      )
+    case "constant":
+      return perLine((l) =>
+        splitWords(l)
+          .map((w) => w.toUpperCase())
+          .join("_")
+      )
+    case "dot":
+      return perLine((l) =>
+        splitWords(l)
+          .map((w) => w.toLowerCase())
+          .join(".")
+      )
+    case "path":
+      return perLine((l) =>
+        splitWords(l)
+          .map((w) => w.toLowerCase())
+          .join("/")
+      )
+    default:
+      return text
+  }
+}
+
+function caseBuild(v: GValues): GResult {
+  const text2 = String(v.text ?? "")
+  if (!text2.trim()) return err("Type or paste some text.")
+  const out = convertCase(text2, String(v.mode))
+  return out
+}
+
+function lineSortBuild(v: GValues): GResult {
+  let list = String(v.text ?? "").split(/\r?\n/)
+  if (!list.some((l) => l.trim())) return err("Enter some lines to sort.")
+  if (b(v, "trim")) list = list.map((l) => l.trim())
+  if (b(v, "blank")) list = list.filter((l) => l.trim() !== "")
+  const collator = new Intl.Collator(undefined, {
+    numeric: b(v, "natural"),
+    sensitivity: b(v, "icase") ? "base" : "variant",
+  })
+  const num2 = (l: string) => {
+    const m = l.match(/-?\d+(?:\.\d+)?/)
+    return m ? Number(m[0]) : Number.NaN
+  }
+  switch (String(v.order)) {
+    case "az":
+      list.sort(collator.compare)
+      break
+    case "za":
+      list.sort((x, y) => collator.compare(y, x))
+      break
+    case "num-asc":
+      list.sort((x, y) =>
+        Number.isNaN(num2(x)) ? 1 : Number.isNaN(num2(y)) ? -1 : num2(x) - num2(y)
+      )
+      break
+    case "num-desc":
+      list.sort((x, y) =>
+        Number.isNaN(num2(x)) ? 1 : Number.isNaN(num2(y)) ? -1 : num2(y) - num2(x)
+      )
+      break
+    case "len-asc":
+      list.sort((x, y) => x.length - y.length || collator.compare(x, y))
+      break
+    case "len-desc":
+      list.sort((x, y) => y.length - x.length || collator.compare(x, y))
+      break
+    case "reverse":
+      list.reverse()
+      break
+    case "shuffle":
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = randomInt(i + 1)
+        ;[list[i], list[j]] = [list[j], list[i]]
+      }
+      break
+  }
+  return list.join("\n")
+}
+
+function dedupeBuild(v: GValues): GResult {
+  const input = String(v.text ?? "").split(/\r?\n/)
+  if (!input.some((l) => l.trim())) return err("Enter some lines.")
+  const norm = (l: string) => {
+    let k = b(v, "trim") ? l.trim() : l
+    if (b(v, "icase")) k = k.toLowerCase()
+    return k
+  }
+  const counts = new Map<string, number>()
+  for (const l of input) counts.set(norm(l), (counts.get(norm(l)) ?? 0) + 1)
+  const seen = new Set<string>()
+  let out: string[] = []
+  const mode = String(v.mode)
+  for (const l of input) {
+    const k = norm(l)
+    if (b(v, "blank") && l.trim() === "") continue
+    const c = counts.get(k) ?? 0
+    if (mode === "remove") {
+      if (!seen.has(k)) out.push(l)
+    } else if (mode === "duplicates") {
+      if (c > 1 && !seen.has(k)) out.push(l)
+    } else if (c === 1) out.push(l)
+    seen.add(k)
+  }
+  if (b(v, "count") && mode !== "unique") out = out.map((l) => `${counts.get(norm(l))}\t${l}`)
+  const removed = input.length - out.length
+  return [
+    out.join("\n"),
+    "",
+    `${input.length} lines in, ${out.length} out${mode === "remove" ? `, ${removed} duplicate or blank line(s) removed` : ""}.`,
+  ].join("\n")
+}
+
+function whitespaceBuild(v: GValues): GResult {
+  let t = String(v.text ?? "")
+  if (!t) return err("Type or paste some text.")
+  const before = t.length
+  if (b(v, "zeroWidth")) t = t.replace(/[​-‍⁠﻿]/g, "")
+  if (b(v, "nbsp")) t = t.replace(/[     - 　]/g, " ")
+  if (b(v, "tabs")) t = t.replace(/\t/g, "    ")
+  t = t.replace(/\r\n?/g, "\n")
+  if (b(v, "trimEnds"))
+    t = t
+      .split("\n")
+      .map((l) => l.replace(/[ \t]+$/g, ""))
+      .join("\n")
+  if (b(v, "trimStarts"))
+    t = t
+      .split("\n")
+      .map((l) => l.replace(/^[ \t]+/g, ""))
+      .join("\n")
+  if (b(v, "collapse"))
+    t = t
+      .split("\n")
+      .map((l) => l.replace(/(\S)[ \t]{2,}/g, "$1 "))
+      .join("\n")
+  if (b(v, "blanks")) t = t.replace(/\n{3,}/g, "\n\n")
+  if (b(v, "allBlanks"))
+    t = t
+      .split("\n")
+      .filter((l) => l.trim() !== "")
+      .join("\n")
+  if (b(v, "final")) t = t.replace(/\s+$/g, "") + "\n"
+  if (v.eol === "crlf") t = t.replace(/\n/g, "\r\n")
+  return [t, "", `${before - t.length >= 0 ? before - t.length : 0} character(s) removed.`].join(
+    "\n"
+  )
+}
+
 // ---------- definitions ----------
 
 const yes = (id: string, label: string, value = false): GField => ({
@@ -4814,6 +5015,103 @@ export const generatorDefs: Record<string, GDef> = {
       "Prefer external files or nonces when the content changes often.",
     ],
     build: cspHashBuild,
+  },
+  "text-case-converter": {
+    outputLabel: "Converted text",
+    fields: [
+      area("text", "Text", "Hello World from the LicenBase tools", "Type or paste text"),
+      pick("mode", "Convert to", "title", [
+        ["upper", "UPPER CASE"],
+        ["lower", "lower case"],
+        ["title", "Title Case"],
+        ["sentence", "Sentence case"],
+        ["camel", "camelCase"],
+        ["pascal", "PascalCase"],
+        ["snake", "snake_case"],
+        ["kebab", "kebab-case"],
+        ["constant", "CONSTANT_CASE"],
+        ["dot", "dot.case"],
+        ["path", "path/case"],
+        ["alternating", "aLtErNaTiNg"],
+        ["inverse", "iNVERSE"],
+      ]),
+    ],
+    help: [
+      "Programming cases (camel, snake, kebab, constant, dot, path) convert each line on its own.",
+      "Title Case capitalises the first letter of every word without a small-word list.",
+      "Acronyms in camelCase input, such as HTTPServer, are split into HTTP and Server.",
+      "Everything runs in your browser, so private text stays private.",
+    ],
+    build: caseBuild,
+  },
+  "line-sorter": {
+    outputLabel: "Sorted lines",
+    regenerate: true,
+    fields: [
+      area("text", "Lines", "banana\nApple\ncherry\napple\n10\n9", "One item per line"),
+      pick("order", "Order", "az", [
+        ["az", "A to Z"],
+        ["za", "Z to A"],
+        ["num-asc", "Number, low to high"],
+        ["num-desc", "Number, high to low"],
+        ["len-asc", "Shortest first"],
+        ["len-desc", "Longest first"],
+        ["reverse", "Reverse the order"],
+        ["shuffle", "Shuffle"],
+      ]),
+      yes("icase", "Ignore case", true),
+      yes("natural", "Natural numbers (2 before 10)", true),
+      yes("trim", "Trim each line"),
+      yes("blank", "Remove blank lines", true),
+    ],
+    build: lineSortBuild,
+  },
+  "duplicate-line-remover": {
+    outputLabel: "Result",
+    fields: [
+      area("text", "Lines", "alpha\nbeta\nalpha\nGamma\ngamma\n\nbeta", "One item per line"),
+      pick("mode", "Keep", "remove", [
+        ["remove", "One of each (remove duplicates)"],
+        ["duplicates", "Only the repeated lines"],
+        ["unique", "Only lines that appear once"],
+      ]),
+      yes("icase", "Ignore case"),
+      yes("trim", "Ignore spaces at the ends", true),
+      yes("blank", "Drop blank lines", true),
+      yes("count", "Show how many times each appears"),
+    ],
+    build: dedupeBuild,
+  },
+  "whitespace-cleaner": {
+    outputLabel: "Cleaned text",
+    fields: [
+      area(
+        "text",
+        "Text",
+        "  Hello    world  \n\n\n Line\twith\ttabs​  \n",
+        "Paste text with messy spacing"
+      ),
+      yes("trimEnds", "Trim the end of every line", true),
+      yes("trimStarts", "Trim the start of every line"),
+      yes("collapse", "Collapse repeated spaces inside lines", true),
+      yes("blanks", "Reduce blank lines to one", true),
+      yes("allBlanks", "Remove all blank lines"),
+      yes("tabs", "Turn tabs into four spaces"),
+      yes("nbsp", "Turn non-breaking and special spaces into normal spaces", true),
+      yes("zeroWidth", "Remove invisible zero-width characters", true),
+      yes("final", "End with a single new line"),
+      pick("eol", "Line endings", "lf", [
+        ["lf", "Unix (LF)"],
+        ["crlf", "Windows (CRLF)"],
+      ]),
+    ],
+    help: [
+      "Text copied from the web or word processors often hides non-breaking spaces and zero-width characters.",
+      "Zero-width characters can break URLs, passwords, code and comparisons without being visible.",
+      "Unix servers expect LF line endings; Windows files often use CRLF.",
+      "Trailing spaces cause noisy diffs in version control.",
+    ],
+    build: whitespaceBuild,
   },
   "domain-transfer-checklist": {
     outputLabel: "Checklist",

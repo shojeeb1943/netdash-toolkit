@@ -502,6 +502,21 @@ export function sqlMinify(input: string): TResult {
   return ok(out.trim())
 }
 
+export function tsvToCsv(input: string, outDelim: string, protect: boolean): TResult {
+  if (!input.trim()) return empty()
+  try {
+    const rows = parseCsv(input, "\t")
+    const sep = outDelim === "tab" ? "\t" : outDelim
+    const cell = (c: string) => {
+      const g = protect ? guard(c) : c
+      return g.includes(sep) || /["\n\r]/.test(g) ? `"${g.replace(/"/g, '""')}"` : g
+    }
+    return ok(rows.map((r) => r.map(cell).join(sep)).join("\n"))
+  } catch (e) {
+    return fail(e)
+  }
+}
+
 // ---- definitions ----
 
 const indentOption: TOption = {
@@ -575,6 +590,27 @@ export const transformDefs: Record<string, TDef> = {
       "Keep any optimizer hint comments out of the input if your database reads them.",
     ],
     run: (i) => sqlMinify(i),
+  },
+  "tsv-to-csv": {
+    inputLabel: "TSV (tab separated)",
+    outputLabel: "CSV",
+    sample: 'name\tplan\tnote\nAda\tvps\tsays "hi", twice\nLin\tdedicated\t=SUM(A1)\n',
+    options: [
+      { ...delimiterOption, id: "out", label: "Output delimiter" },
+      {
+        id: "protect",
+        label: "Protect against spreadsheet formulas",
+        type: "checkbox",
+        value: true,
+      },
+    ],
+    help: [
+      "Cells that contain the delimiter, quotes or line breaks are quoted for you.",
+      "The formula guard adds an apostrophe to cells starting with =, +, - or @.",
+      "Copy cells from a spreadsheet and paste them in: they arrive tab separated.",
+      "Turn the guard off if you need the data byte for byte.",
+    ],
+    run: (i, o) => tsvToCsv(i, String(o.out), o.protect === true),
   },
   "yaml-formatter": {
     inputLabel: "YAML",

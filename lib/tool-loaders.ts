@@ -704,6 +704,22 @@ export const toolLoaders: Record<string, ToolLoader> = {
     import("@/components/tools/uuid-validator").then((m) => ({ default: m.UuidValidator })),
   "csp-hash-generator": () =>
     import("@/components/tools/csp-hash-generator").then((m) => ({ default: m.CspHashGenerator })),
+  "text-case-converter": () =>
+    import("@/components/tools/text-case-converter").then((m) => ({
+      default: m.TextCaseConverter,
+    })),
+  "line-sorter": () =>
+    import("@/components/tools/line-sorter").then((m) => ({ default: m.LineSorter })),
+  "duplicate-line-remover": () =>
+    import("@/components/tools/duplicate-line-remover").then((m) => ({
+      default: m.DuplicateLineRemover,
+    })),
+  "whitespace-cleaner": () =>
+    import("@/components/tools/whitespace-cleaner").then((m) => ({ default: m.WhitespaceCleaner })),
+  "tsv-to-csv": () =>
+    import("@/components/tools/tsv-to-csv").then((m) => ({ default: m.TsvToCsv })),
+  "text-diff": () => import("@/components/tools/text-diff").then((m) => ({ default: m.TextDiff })),
+  "json-diff": () => import("@/components/tools/json-diff").then((m) => ({ default: m.JsonDiff })),
 }
 
 export function loadTool(slug: string): Promise<{ default: ComponentType }> {
