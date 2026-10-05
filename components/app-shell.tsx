@@ -21,6 +21,8 @@ function useIsDesktop() {
   return isDesktop
 }
 
+const RAIL_KEY = "licenbase-sidebar-open"
+
 // owns the one piece of chrome state; navigation is real routes, so the chrome persists and every tool is deep-linkable
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -33,7 +35,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setSidebarOpen(open)
   }, [])
 
-  const toggleSidebar = useCallback(() => setDrawer(!sidebarOpen), [setDrawer, sidebarOpen])
+  // desktop rail: open by default and remembered, so opening a tool (a full page load from the site header) doesn't collapse it
+  useEffect(() => {
+    if (!isDesktop) return setSidebarOpen(false)
+    try {
+      setSidebarOpen(localStorage.getItem(RAIL_KEY) !== "0")
+    } catch {
+      setSidebarOpen(true)
+    }
+  }, [isDesktop])
+
+  const toggleSidebar = useCallback(() => {
+    if (isDesktop) {
+      try {
+        localStorage.setItem(RAIL_KEY, sidebarOpen ? "0" : "1")
+      } catch {
+        // persistence is a nicety
+      }
+    }
+    setDrawer(!sidebarOpen)
+  }, [isDesktop, setDrawer, sidebarOpen])
 
   return (
     <div className="bg-background flex h-[calc(100dvh-var(--lb-hdr,7rem))]">
